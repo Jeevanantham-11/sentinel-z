@@ -79,9 +79,16 @@ Sentinel-Z provides real-time clinical deterioration surveillance inside the hos
 
 ---
 
-### 2.5 "📖 User Guide" Button (New)
-* **Where It Lives:** Top bar, next to Connection status.
-* **What It Does:** Opens the interactive, in-app documentation drawer explaining every button, screen, and clinical rule on demand.
+### 2.5 "⚡ Guided Tour" Button (Interactive Onboarding)
+* **Where It Lives:** Top bar, right side.
+* **What It Does:** Launches the interactive step-by-step spotlight tour across the platform. Automatically fires on initial load/refresh, highlighting key buttons one-by-one with contextual tooltips, progress dots, and a **"Skip Tour"** button for immediate dismissal.
+* **Keyboard Shortcuts:** `Right Arrow` (Next Step), `Left Arrow` (Previous Step), `Escape` (Skip Tour).
+
+---
+
+### 2.6 "📖 User Manual" Button
+* **Where It Lives:** Top bar, adjacent to Guided Tour.
+* **What It Does:** Opens the in-app modal manual explaining every button, screen, clinical signal, and HIPAA/FHIR data policy on demand, with a 1-click button to launch the Guided Tour.
 
 ---
 

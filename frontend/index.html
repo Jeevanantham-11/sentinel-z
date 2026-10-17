@@ -209,7 +209,7 @@
             <!-- Top Action Cluster -->
             <div class="flex items-center gap-3">
                 <!-- PhysioNet Quick Replay -->
-                <div class="flex items-center bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1 text-xs">
+                <div id="cohort-replay-cluster" class="flex items-center bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1 text-xs">
                     <span class="text-slate-500 font-medium mr-2">Cohort Replay:</span>
                     <select id="benchmark-select" class="bg-white text-slate-800 border border-slate-300 text-xs px-2 py-0.5 outline-none rounded">
                         <option value="p000028">p000028: Acute Sepsis Shock (31h) [Septic]</option>
@@ -242,6 +242,12 @@
                     <span class="h-2 w-2 rounded-full bg-emerald-500" id="conn-dot"></span>
                     <span id="conn-text">Online</span>
                 </div>
+
+                <!-- Interactive Guided Tour Button -->
+                <button id="btn-tour-trigger" onclick="startInteractiveTour()" class="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-xs" title="Start Interactive Step-by-Step Guided Tour">
+                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>Guided Tour</span>
+                </button>
 
                 <!-- User Manual Button -->
                 <button onclick="openUserManualModal()" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-xs" title="Open Interactive User Manual & System Guide">
@@ -975,7 +981,13 @@
                         <p class="text-[11px] text-slate-500 font-normal">Reference guide explaining every button, visual signal, and operational flow.</p>
                     </div>
                 </div>
-                <button onclick="closeUserManualModal()" class="text-slate-400 hover:text-slate-700 text-xl font-medium px-2 py-1">&times;</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="closeUserManualModal(); startInteractiveTour();" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold rounded-md transition flex items-center gap-1.5 shadow-xs">
+                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>Start Interactive Tour</span>
+                    </button>
+                    <button onclick="closeUserManualModal()" class="text-slate-400 hover:text-slate-700 text-xl font-medium px-2 py-1">&times;</button>
+                </div>
             </div>
 
             <!-- Modal Nav Tabs -->
@@ -1124,6 +1136,57 @@
             <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
                 <span class="text-[11px] text-slate-500">Documented in <code class="font-mono text-slate-700">docs/USER_MANUAL.md</code></span>
                 <button onclick="closeUserManualModal()" class="px-5 py-1.5 bg-[#0f62fe] hover:bg-[#0043ce] text-xs font-semibold text-white rounded-lg shadow-xs transition">Close Guide</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- INTERACTIVE STEP-BY-STEP GUIDED ONBOARDING TOUR                        -->
+    <!-- ======================================================================= -->
+    <div id="interactive-tour-overlay" class="fixed inset-0 z-[100] hidden font-sans select-none pointer-events-none">
+        <!-- Backdrop with click to skip -->
+        <div id="tour-backdrop" onclick="skipTour()" class="absolute inset-0 bg-slate-950/65 backdrop-blur-[1.5px] pointer-events-auto transition-opacity duration-300"></div>
+
+        <!-- Spotlight Cutout Box with glowing border and box-shadow mask -->
+        <div id="tour-spotlight" class="fixed rounded-lg transition-all duration-300 pointer-events-none border-2 border-blue-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.65)] ring-4 ring-blue-400/40 z-[101]"></div>
+
+        <!-- Floating Tour Tooltip Card -->
+        <div id="tour-tooltip" class="fixed z-[102] w-88 max-w-[92vw] bg-white border border-slate-200 rounded-2xl shadow-2xl p-5 text-xs text-slate-700 pointer-events-auto transition-all duration-300 space-y-3.5 font-sans">
+            <!-- Header: Step badge & Skip button -->
+            <div class="flex items-center justify-between">
+                <span id="tour-step-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    Step 1 of 6
+                </span>
+                <button onclick="skipTour()" class="text-slate-400 hover:text-slate-800 text-xs font-semibold flex items-center gap-1 transition px-2 py-0.5 rounded hover:bg-slate-100" title="Skip Tour &amp; Return to Dashboard">
+                    <span>Skip Tour</span>
+                    <span class="text-sm font-bold leading-none">&times;</span>
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="space-y-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full bg-blue-600 shrink-0"></span>
+                    <h4 id="tour-title" class="font-bold text-sm text-slate-900 leading-tight">Cohort Replay: Authentic ICU Patients</h4>
+                </div>
+                <p id="tour-description" class="text-slate-600 leading-relaxed text-xs">
+                    Select an authentic ICU patient and stream their vital trajectory.
+                </p>
+            </div>
+
+            <!-- Footer: Progress Dots & Next/Prev Controls -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div id="tour-dots" class="flex items-center gap-1.5">
+                    <!-- Dots will be populated via JS -->
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="tour-prev-btn" onclick="prevTourStep()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-md transition text-xs">
+                        &larr; Back
+                    </button>
+                    <button id="tour-next-btn" onclick="nextTourStep()" class="px-3.5 py-1 bg-[#0f62fe] hover:bg-[#0043ce] text-white font-semibold rounded-md shadow-xs transition text-xs">
+                        Next &rarr;
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1852,10 +1915,198 @@
             document.getElementById("patient-modal").classList.add("hidden");
         }
 
+        // =====================================================================
+        // INTERACTIVE GUIDED TOUR CONTROLLER
+        // =====================================================================
+        const TOUR_STEPS = [
+            {
+                targetId: "cohort-replay-cluster",
+                viewId: "telemetry",
+                title: "Cohort Replay (Authentic ICU Data)",
+                description: "Select an authentic patient from the PhysioNet 2019 ICU challenge (e.g. p000028 for acute sepsis shock or p000001 for stable recovery). Click Replay to stream real-time physiological vitals hour-by-hour.",
+                preferredPosition: "bottom"
+            },
+            {
+                targetId: "toggle-stream-btn",
+                viewId: "telemetry",
+                title: "Stream Load (High-Velocity Ingestion)",
+                description: "Simulates high-velocity multi-bed telemetry ingestion at 1–2 transactions/sec. Proves that IBM LinuxONE executes in-transaction neural inference with sub-millisecond pre-commit response times.",
+                preferredPosition: "bottom"
+            },
+            {
+                targetId: "toggle-audio-btn",
+                viewId: "telemetry",
+                title: "Bedside Audio Alert (IEC 60601-1-8)",
+                description: "Toggles the hospital bedside chime. When enabled, it sounds a medical-grade 880 Hz auditory alert whenever any patient breaches the critical Sepsis-3 threshold (≥ 70% risk or dynamic limit).",
+                preferredPosition: "bottom"
+            },
+            {
+                targetId: "nav-alertbudget",
+                viewId: "alertbudget",
+                title: "Alert Budget Controller (Novel Differentiator)",
+                description: "Click here to inspect the Dynamic Alert Budget. It automatically modulates the alarm threshold between 60% and 85% to eliminate alarm fatigue, guaranteeing < 2.0 false alarms per bed per day.",
+                preferredPosition: "right"
+            },
+            {
+                targetId: "nav-auditlog",
+                viewId: "auditlog",
+                title: "IBM Db2 for z/OS Audit Ledger",
+                description: "Click here to view the immutable Db2 transaction ledger. Every inference score and FDA CDS guardrail check is committed into the mainframe database with complete HIPAA data sovereignty.",
+                preferredPosition: "right"
+            },
+            {
+                targetId: "card-ICU-101",
+                viewId: "telemetry",
+                title: "ICU Bedside Unit & Clinical Dossier",
+                description: "Displays live vitals, MAP sparklines, and sepsis risk. Click 'Clinical Dossier' on any bed to inspect mathematical TreeSHAP feature drivers, FDA CDS Granite rationales, and export FHIR R4 bundles.",
+                preferredPosition: "top"
+            }
+        ];
+
+        let tourActive = false;
+        let currentTourStep = 0;
+
+        function startInteractiveTour() {
+            tourActive = true;
+            currentTourStep = 0;
+            const overlay = document.getElementById("interactive-tour-overlay");
+            if (overlay) overlay.classList.remove("hidden");
+            renderTourStep(0);
+        }
+
+        function skipTour() {
+            tourActive = false;
+            const overlay = document.getElementById("interactive-tour-overlay");
+            if (overlay) overlay.classList.add("hidden");
+            navigateTo("telemetry");
+        }
+
+        function nextTourStep() {
+            if (currentTourStep < TOUR_STEPS.length - 1) {
+                currentTourStep++;
+                renderTourStep(currentTourStep);
+            } else {
+                skipTour();
+            }
+        }
+
+        function prevTourStep() {
+            if (currentTourStep > 0) {
+                currentTourStep--;
+                renderTourStep(currentTourStep);
+            }
+        }
+
+        function renderTourStep(stepIndex) {
+            const step = TOUR_STEPS[stepIndex];
+            if (!step) return;
+
+            if (step.viewId) {
+                navigateTo(step.viewId);
+            }
+
+            const badge = document.getElementById("tour-step-badge");
+            const title = document.getElementById("tour-title");
+            const desc = document.getElementById("tour-description");
+            const prevBtn = document.getElementById("tour-prev-btn");
+            const nextBtn = document.getElementById("tour-next-btn");
+
+            if (badge) badge.innerText = `Step ${stepIndex + 1} of ${TOUR_STEPS.length}`;
+            if (title) title.innerText = step.title;
+            if (desc) desc.innerText = step.description;
+
+            if (prevBtn) {
+                prevBtn.style.visibility = stepIndex === 0 ? "hidden" : "visible";
+            }
+            if (nextBtn) {
+                nextBtn.innerText = stepIndex === TOUR_STEPS.length - 1 ? "Finish Tour ✓" : "Next →";
+            }
+
+            const dotsContainer = document.getElementById("tour-dots");
+            if (dotsContainer) {
+                dotsContainer.innerHTML = TOUR_STEPS.map((_, i) => `
+                    <span class="h-1.5 rounded-full transition-all duration-300 ${i === stepIndex ? 'w-4 bg-blue-600' : 'w-1.5 bg-slate-300'}"></span>
+                `).join("");
+            }
+
+            setTimeout(() => {
+                updateSpotlightPosition();
+            }, 80);
+        }
+
+        function updateSpotlightPosition() {
+            if (!tourActive) return;
+            const step = TOUR_STEPS[currentTourStep];
+            if (!step) return;
+
+            const target = document.getElementById(step.targetId);
+            if (!target) return;
+
+            target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+
+            const rect = target.getBoundingClientRect();
+            const spotlight = document.getElementById("tour-spotlight");
+            const tooltip = document.getElementById("tour-tooltip");
+            if (!spotlight || !tooltip) return;
+
+            const pad = 6;
+            const top = Math.max(4, rect.top - pad);
+            const left = Math.max(4, rect.left - pad);
+            const width = rect.width + (pad * 2);
+            const height = rect.height + (pad * 2);
+
+            spotlight.style.top = `${top}px`;
+            spotlight.style.left = `${left}px`;
+            spotlight.style.width = `${width}px`;
+            spotlight.style.height = `${height}px`;
+
+            const tooltipWidth = Math.min(340, window.innerWidth - 32);
+            tooltip.style.width = `${tooltipWidth}px`;
+            const tooltipHeight = tooltip.offsetHeight || 190;
+            const margin = 12;
+
+            let tooltipTop = top + height + margin;
+            let tooltipLeft = left;
+
+            if (step.preferredPosition === "right" && left + width + tooltipWidth + margin < window.innerWidth) {
+                tooltipLeft = left + width + margin;
+                tooltipTop = Math.min(top, window.innerHeight - tooltipHeight - 16);
+            } else if (step.preferredPosition === "top" || tooltipTop + tooltipHeight > window.innerHeight - 16) {
+                tooltipTop = Math.max(16, top - tooltipHeight - margin);
+            }
+
+            if (tooltipLeft + tooltipWidth > window.innerWidth - 16) {
+                tooltipLeft = Math.max(16, window.innerWidth - tooltipWidth - 16);
+            }
+            if (tooltipLeft < 16) tooltipLeft = 16;
+            if (tooltipTop < 16) tooltipTop = 16;
+
+            tooltip.style.top = `${tooltipTop}px`;
+            tooltip.style.left = `${tooltipLeft}px`;
+        }
+
+        window.addEventListener("resize", () => {
+            if (tourActive) updateSpotlightPosition();
+        });
+        window.addEventListener("scroll", () => {
+            if (tourActive) updateSpotlightPosition();
+        }, true);
+        window.addEventListener("keydown", (e) => {
+            if (!tourActive) return;
+            if (e.key === "Escape") skipTour();
+            if (e.key === "ArrowRight") nextTourStep();
+            if (e.key === "ArrowLeft") prevTourStep();
+        });
+
         window.addEventListener("DOMContentLoaded", () => {
             const overrideInput = document.getElementById("api-base-url");
             overrideInput.addEventListener("change", checkGatewayHealth);
             checkGatewayHealth();
+
+            // Automatically launch interactive guided tour on every page refresh as requested
+            setTimeout(() => {
+                startInteractiveTour();
+            }, 400);
         });
     </script>
 </body>
