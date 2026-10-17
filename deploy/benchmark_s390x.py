@@ -109,6 +109,6 @@ def run_benchmark(iterations: int = 2000):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sentinel-Z LinuxONE Benchmark Engine")
-    parser.add_argument("--iter", type=int, default=2000, help="Number of benchmark iterations")
+    parser.add_argument("--iter", "--iterations", dest="iter", type=int, default=2000, help="Number of benchmark iterations")
     args = parser.parse_args()
     run_benchmark(iterations=args.iter)
