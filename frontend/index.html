@@ -103,6 +103,11 @@
                     <span id="stream-dot" class="h-1.5 w-1.5 rounded-full bg-gray-500"></span>
                     <span id="stream-btn-text">Random Load Stream</span>
                 </button>
+
+                <button id="toggle-audio-btn" onclick="toggleAudio()" class="bg-carbon-g90 hover:bg-carbon-g80 border border-carbon-g80 text-gray-400 text-xs font-mono px-2.5 py-1.5 transition flex items-center gap-1.5" title="Toggle Bedside Audible Alert Chime">
+                    <span id="audio-icon">&#128263;</span>
+                    <span id="audio-text">Audio: Muted</span>
+                </button>
             </div>
 
         </div>
@@ -521,10 +526,18 @@
                 </p>
             </div>
 
-            <div class="flex justify-end pt-2">
-                <button onclick="closeModal()" class="px-4 py-1.5 bg-carbon-g90 hover:bg-carbon-g80 border border-carbon-g80 text-xs font-mono text-white">
-                    Dismiss
-                </button>
+            <div class="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-carbon-g80">
+                <div id="modal-qsofa-container" class="text-xs font-mono">
+                    <!-- Injected by JS -->
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportFhirBundle()" class="px-3 py-1.5 bg-carbon-blue60 hover:bg-carbon-blue70 text-xs font-mono text-white flex items-center gap-1.5 transition">
+                        <span>&#128190; Export FHIR R4 Bundle (.json)</span>
+                    </button>
+                    <button onclick="closeModal()" class="px-4 py-1.5 bg-carbon-g90 hover:bg-carbon-g80 border border-carbon-g80 text-xs font-mono text-white transition">
+                        Dismiss
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -748,6 +761,7 @@
             if (isIntercept) {
                 interceptCount++;
                 document.getElementById("metric-intercepts").innerText = interceptCount.toLocaleString();
+                playClinicalChime();
             }
 
             const tbody = document.getElementById("telemetry-table-body");
@@ -864,7 +878,59 @@
             }
         }
 
+        let currentDossierData = null;
+        let audioAlertEnabled = false;
+
+        function toggleAudio() {
+            audioAlertEnabled = !audioAlertEnabled;
+            const btn = document.getElementById("toggle-audio-btn");
+            const icon = document.getElementById("audio-icon");
+            const text = document.getElementById("audio-text");
+            if (audioAlertEnabled) {
+                icon.innerHTML = "&#128266;";
+                text.innerText = "Audio: Active";
+                btn.className = "bg-carbon-blue80 hover:bg-carbon-blue70 border border-carbon-blue60 text-white text-xs font-mono px-2.5 py-1.5 transition flex items-center gap-1.5";
+                playClinicalChime();
+            } else {
+                icon.innerHTML = "&#128263;";
+                text.innerText = "Audio: Muted";
+                btn.className = "bg-carbon-g90 hover:bg-carbon-g80 border border-carbon-g80 text-gray-400 text-xs font-mono px-2.5 py-1.5 transition flex items-center gap-1.5";
+            }
+        }
+
+        function playClinicalChime() {
+            if (!audioAlertEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.38);
+            } catch (e) {}
+        }
+
+        function computeQSOFA(vitals) {
+            let score = 0;
+            const resp = vitals.resp || 16;
+            const mapVal = vitals.map || 85;
+            const temp = vitals.temp || 37.0;
+            if (resp >= 22) score++;
+            if (mapVal <= 65) score++;
+            if (temp >= 38.3 || temp <= 36.0) score++;
+            return score;
+        }
+
         function openDossier(data) {
+            currentDossierData = data;
             const modal = document.getElementById("patient-modal");
             document.getElementById("modal-patient-id").innerText = `CLINICAL DOSSIER: ${data.patient_id} (Score: ${(data.risk_score || 0).toFixed(1)}%)`;
             document.getElementById("modal-timestamp").innerText = `In-Transaction Intercept Latency: ${(data.inference_latency_ms || 0).toFixed(3)} ms`;
@@ -890,6 +956,12 @@
                 </div>
             `;
 
+            // Calculate qSOFA
+            const qsofa = computeQSOFA(vitals);
+            const qsofaColor = qsofa >= 2 ? "text-carbon-red60 border-carbon-red70 bg-red-950/40" : (qsofa === 1 ? "text-carbon-yellow30 border-carbon-yellow30/40 bg-yellow-950/30" : "text-carbon-green50 border-carbon-green50/40 bg-green-950/30");
+            const qsofaText = qsofa >= 2 ? `qSOFA: ${qsofa}/3 (High Sepsis Mortality Risk)` : (qsofa === 1 ? `qSOFA: 1/3 (Borderline Risk)` : `qSOFA: 0/3 (Normal Function)`);
+            document.getElementById("modal-qsofa-container").innerHTML = `<span class="px-2 py-0.5 border ${qsofaColor} font-bold">${qsofaText}</span>`;
+
             const shapDetails = document.getElementById("modal-shap-details");
             const topDrivers = data.rationale?.top_drivers || ["No acute deviation detected."];
             shapDetails.innerHTML = topDrivers.map(d => `<div class="text-rose-300">&bull; ${d}</div>`).join('');
@@ -898,6 +970,49 @@
             document.getElementById("modal-rationale-text").innerText = rationaleText;
 
             modal.classList.remove("hidden");
+        }
+
+        function exportFhirBundle() {
+            if (!currentDossierData) return;
+            const pid = currentDossierData.patient_id || "ICU-PATIENT";
+            const fhirBundle = {
+                resourceType: "Bundle",
+                type: "document",
+                timestamp: new Date().toISOString(),
+                identifier: { system: "urn:ietf:rfc:3986", value: `urn:uuid:sentinel-${Date.now()}` },
+                entry: [
+                    {
+                        resource: {
+                            resourceType: "Patient",
+                            id: pid,
+                            identifier: [{ system: "urn:oid:2.16.840.1.113883.4.1", value: pid }]
+                        }
+                    },
+                    {
+                        resource: {
+                            resourceType: "RiskAssessment",
+                            status: "final",
+                            subject: { reference: `Patient/${pid}` },
+                            occurrenceDateTime: new Date().toISOString(),
+                            method: { text: "IBM Sentinel-Z Multi-Model Dual Engine on IBM Telum NNPA" },
+                            prediction: [
+                                {
+                                    outcome: { text: "Septic Shock Clinical Deterioration (Sepsis-3)" },
+                                    probabilityDecimal: +((currentDossierData.risk_score || 0) / 100.0).toFixed(4),
+                                    rationale: currentDossierData.rationale?.clinical_rationale || "In-transaction scoring committed to ledger."
+                                }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const blob = new Blob([JSON.stringify(fhirBundle, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `FHIR_R4_${pid}_Sepsis_Assessment.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         function closeModal() {
