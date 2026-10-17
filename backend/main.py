@@ -9,7 +9,7 @@ import os
 import sys
 import logging
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, Dict, Any
@@ -65,7 +65,7 @@ db2_audit = Db2AuditLog()
 
 
 class PatientTelemetry(BaseModel):
-    patient_id: str = Field(..., description="Unique anonymized clinical identifier")
+    patient_id: str = Field(..., max_length=64, regex=r"^[a-zA-Z0-9_\-]+$", description="Unique anonymized clinical identifier")
     hr: Optional[float] = Field(None, ge=20.0, le=300.0, description="Heart Rate (bpm)")
     map: Optional[float] = Field(None, ge=10.0, le=250.0, description="Mean Arterial Pressure (mmHg)")
     resp: Optional[float] = Field(None, ge=4.0, le=80.0, description="Respiratory Rate (breaths/min)")
@@ -237,7 +237,7 @@ async def get_alert_budget():
     }
 
 @app.get("/api/v1/audit/log", status_code=status.HTTP_200_OK)
-async def get_audit_log(limit: int = 50):
+async def get_audit_log(limit: int = Query(50, ge=1, le=500, description="Max audit entries to retrieve")):
     """
     Returns the last N committed EHR transactions from the Db2 Audit Log.
     Simulates IBM Db2 for z/OS row-level audit table (production: ibm_db connector).
@@ -277,7 +277,7 @@ async def get_benchmark_patient(patient_id: str):
         return json.load(f)
 
 class HL7IngestPayload(BaseModel):
-    raw_message: str = Field(..., description="Raw HL7 v2.x pipe-delimited message (ORU^R01)")
+    raw_message: str = Field(..., max_length=65536, description="Raw HL7 v2.x pipe-delimited message (ORU^R01)")
 
 @app.post("/api/v1/ingest/hl7", status_code=status.HTTP_200_OK)
 async def ingest_hl7_v2(payload: HL7IngestPayload):

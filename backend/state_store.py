@@ -61,13 +61,19 @@ class PatientRollingBuffer:
             ]
 
 class InMemoryStateStore:
-    def __init__(self):
+    def __init__(self, max_patients: int = 1000):
         self._patients: Dict[str, PatientRollingBuffer] = {}
+        self._max_patients = max_patients
         self._global_lock = threading.Lock()
 
     def get_or_create(self, patient_id: str) -> PatientRollingBuffer:
         with self._global_lock:
             if patient_id not in self._patients:
+                # Memory protection: prevent unbounded heap growth under high load
+                if len(self._patients) >= self._max_patients:
+                    stalest_id = min(self._patients.keys(), key=lambda k: self._patients[k].last_updated)
+                    del self._patients[stalest_id]
                 self._patients[patient_id] = PatientRollingBuffer(patient_id)
             return self._patients[patient_id]
+
 
