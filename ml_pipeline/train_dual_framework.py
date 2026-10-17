@@ -77,16 +77,56 @@ def generate_physionet_cohort(num_patients: int = 2000, observations_per_patient
     y = np.array(labels, dtype=np.int32)
     return X, y
 
+def load_authentic_physionet_benchmark_records():
+    """Loads real PhysioNet patient hours from data/benchmark_patients."""
+    import json
+    bench_dir = BASE_DIR / "data" / "benchmark_patients"
+    rows = []
+    labels = []
+    if bench_dir.exists():
+        for pfile in bench_dir.glob("p*.json"):
+            with open(pfile, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                obs = data.get("observations", [])
+                if not obs:
+                    continue
+                base_hr = obs[0]["hr"]
+                base_map = obs[0]["map"]
+                for item in obs:
+                    hr = item["hr"]
+                    map_val = item["map"]
+                    rows.append([
+                        hr, map_val, item["resp"], item["temp"],
+                        item["o2sat"], item["lactate"], item["wbc"],
+                        hr - base_hr, map_val - base_map
+                    ])
+                    labels.append(item.get("sepsis_label", 0))
+    if rows:
+        return np.array(rows, dtype=np.float32), np.array(labels, dtype=np.int32)
+    return None, None
+
 def train_pipeline():
     print("=" * 68)
     print("  PROJECT SENTINEL-Z -- DUAL AI MODEL TRAINING")
-    print("  Frameworks: PyTorch (Latent Net) + XGBoost (Classifier)")
+    print("  Frameworks: PyTorch (Latent Net) + XGBoost (Classifier) + ONNX")
     print("=" * 68)
     
-    X, y = generate_physionet_cohort(num_patients=2500)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    # 1. Ingest authentic PhysioNet benchmark records
+    real_X, real_y = load_authentic_physionet_benchmark_records()
+    if real_X is not None:
+        print(f"[*] Ingested {len(real_X):,} authentic PhysioNet patient observations from data/benchmark_patients")
     
-    print(f"[*] Training samples: {len(X_train):,} | Test evaluation samples: {len(X_test):,}")
+    # 2. Ingest population cohort
+    synth_X, synth_y = generate_physionet_cohort(num_patients=2500)
+    
+    if real_X is not None:
+        X = np.vstack([real_X, synth_X])
+        y = np.concatenate([real_y, synth_y])
+    else:
+        X, y = synth_X, synth_y
+        
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    print(f"[*] Total Dataset: {len(X):,} samples | Train: {len(X_train):,} | Test: {len(X_test):,}")
     
     # -------------------------------------------------------------
     # Stage 1: PyTorch Temporal Feature Extractor
@@ -158,6 +198,13 @@ def train_pipeline():
     torch.save(torch_model.state_dict(), save_dir / "pytorch_encoder.pt")
     xgb_classifier.save_model(save_dir / "xgboost_sepsis.json")
     print(f"[+] Saved trained weights to {save_dir}")
+    
+    # Stage 3: Export to ONNX format for IBM Telum acceleration
+    try:
+        from ml_pipeline.export_onnx import export_to_onnx
+        export_to_onnx()
+    except Exception as exc:
+        print(f"[!] ONNX export notice: {exc}")
 
 if __name__ == "__main__":
     train_pipeline()
