@@ -1538,22 +1538,31 @@
             const patientId = "ICU-" + (100 + Math.floor(Math.random() * 20));
             const baseUrl = getApiBaseUrl();
             
-            const payload = {
-                patient_id: patientId,
-                hr: isCritical ? 115 + Math.floor(Math.random() * 25) : 72 + Math.floor(Math.random() * 15),
-                map: isCritical ? 52 + Math.floor(Math.random() * 10) : 84 + Math.floor(Math.random() * 10),
-                resp: isCritical ? 24 + Math.floor(Math.random() * 6) : 16 + Math.floor(Math.random() * 4),
-                temp: isCritical ? 38.6 : 37.0,
-                o2sat: isCritical ? 91.0 : 98.0,
-                lactate: isCritical ? +(2.8 + Math.random() * 2.0).toFixed(1) : 1.1,
-                wbc: isCritical ? 15.2 : 7.4
-            };
+            const hr = isCritical ? 115 + Math.floor(Math.random() * 25) : 72 + Math.floor(Math.random() * 15);
+            const mapVal = isCritical ? 52 + Math.floor(Math.random() * 10) : 84 + Math.floor(Math.random() * 10);
+            const resp = isCritical ? 24 + Math.floor(Math.random() * 6) : 16 + Math.floor(Math.random() * 4);
+            const temp = isCritical ? 38.6 : 37.0;
+            const o2sat = isCritical ? 91.0 : 98.0;
+            const lactate = isCritical ? +(2.8 + Math.random() * 2.0).toFixed(1) : 1.1;
+            const wbc = isCritical ? 15.2 : 7.4;
+
+            // Transmit as authentic clinical HL7 v2.x ORU^R01 message
+            const tsStr = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+            const hl7Msg = `MSH|^~\\&|INTELLIVUE|ICU_CLUSTER|SENTINEL_Z|IBM_Z16|${tsStr}||ORU^R01|MSG_${Date.now()}|P|2.5\r\n` +
+                           `PID|1||${patientId}^^^HOSPITAL||DOE^ANONYMOUS||19750101|U\r\n` +
+                           `OBX|1|NM|8867-4^Heart rate^LN||${hr}|bpm||||F\r\n` +
+                           `OBX|2|NM|8478-0^Mean blood pressure^LN||${mapVal}|mmHg||||F\r\n` +
+                           `OBX|3|NM|9279-1^Respiratory rate^LN||${resp}|/min||||F\r\n` +
+                           `OBX|4|NM|8310-5^Body temperature^LN||${temp}|C||||F\r\n` +
+                           `OBX|5|NM|2708-6^Oxygen saturation^LN||${o2sat}|%||||F\r\n` +
+                           `OBX|6|NM|2571-8^Serum lactate^LN||${lactate}|mmol/L||||F\r\n` +
+                           `OBX|7|NM|6690-2^Leukocytes WBC^LN||${wbc}|10*9/L||||F\r\n`;
 
             try {
-                const res = await fetch(`${baseUrl}/api/v1/telemetry`, {
+                const res = await fetch(`${baseUrl}/api/v1/ingest/hl7`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ raw_message: hl7Msg })
                 });
                 if (res.ok) {
                     const data = await res.json();
