@@ -116,3 +116,24 @@ python data_simulator/hl7_generator.py --mode replay --patient p000028
 # Or dispatch continuous high-throughput load stream
 python data_simulator/hl7_generator.py --mode stream --rate 4 --count 100
 ```
+
+---
+
+## 6. Enterprise UI: IBM Carbon Command Center
+
+Access the surveillance dashboard at `http://localhost:8000/static/` or open `frontend/index.html` directly in any modern browser. Features:
+* **[Tab 1] Live ICU Surveillance**: Real-time bed monitoring with bedside vital sparklines (HR, MAP, Lactate, Resp), risk severity badges, and dynamic transaction ticker.
+* **[Tab 2] TreeSHAP Explainability**: Transparent mathematical breakdown showing exact percentage attribution ($\phi_i$) for every vital sign without black-box opacity.
+* **[Tab 3] PhysioNet Cohort**: Interactive registry of real ICU cases from the PhysioNet 2019 Challenge (e.g. `p000028`, `p000011`, `p000001`) with single-click replay triggers.
+* **[Tab 4] IBM Telum Specs**: Architectural details of on-chip AI acceleration (NNPA), PCIe cache coherency, and sub-millisecond transaction SLAs.
+* **Clinical Dossier Drawer**: Inspect detailed clinical telemetry, TreeSHAP drivers, and IBM Granite 3.0 copilot triage briefs.
+
+---
+
+## 7. Competition & Submission Deliverables
+
+* **10-Slide Pitch Deck**: [`docs/pitch_deck.md`](docs/pitch_deck.md) — Aligned with all 4 judging criteria + AI Innovation Excellence Award.
+* **3-Minute Video Demo Script**: [`docs/pitch_script.md`](docs/pitch_script.md) — Timed walkthrough satisfying the mandatory LinuxONE instance demo rule.
+* **Authentic PhysioNet 2019 Dataset**: Pre-compiled patient cases in `data/benchmark_patients/`.
+* **s390x Mainframe Benchmark**: `deploy/benchmark_s390x.py` clocking $>11,000\text{ TPS}$ with $0.073\text{ ms}$ p50 latency.
+
