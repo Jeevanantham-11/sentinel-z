@@ -103,8 +103,8 @@ async def ingest_telemetry(data: PatientTelemetry):
         inference_ms = (t_end - t_start) / 1_000_000.0
         latency_tracker.record(inference_ms)
         
-        # 3. Deterministic Triage Decision
-        is_critical = risk_score >= 80.0
+        # 3. Deterministic Sepsis-3 Early Warning Triage Decision
+        is_critical = risk_score >= 70.0
         action = "INTERCEPT & ESCALATE" if is_critical else "COMMITTED TO EHR"
         
         # 4. Asynchronous Warm-Path GenAI Synthesis via IBM Granite
@@ -141,6 +141,27 @@ async def ingest_telemetry(data: PatientTelemetry):
 async def get_system_metrics():
     """Returns real-time p50, p95, p99 latency distributions."""
     return latency_tracker.get_metrics()
+
+@app.get("/api/v1/patients/benchmark", status_code=status.HTTP_200_OK)
+async def list_benchmark_patients():
+    """Lists authentic de-identified ICU patients from the PhysioNet 2019 dataset."""
+    import json
+    manifest_path = BASE_DIR / "data" / "benchmark_patients" / "manifest.json"
+    if manifest_path.exists():
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"patient_count": 0, "patients": []}
+
+@app.get("/api/v1/patients/benchmark/{patient_id}", status_code=status.HTTP_200_OK)
+async def get_benchmark_patient(patient_id: str):
+    """Retrieves hour-by-hour clinical telemetry for an authentic PhysioNet patient."""
+    import json
+    clean_id = patient_id.replace(".json", "")
+    patient_path = BASE_DIR / "data" / "benchmark_patients" / f"{clean_id}.json"
+    if not patient_path.exists():
+        raise HTTPException(status_code=404, detail=f"Benchmark patient {patient_id} not found")
+    with open(patient_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 if __name__ == "__main__":
     import uvicorn

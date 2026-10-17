@@ -32,17 +32,23 @@
             </div>
         </div>
 
-        <!-- System Architecture Pill -->
-        <div class="flex items-center gap-6">
-            <div class="text-right">
-                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">In-Transaction Engine</div>
-                <div id="arch-display" class="text-sm font-mono text-emerald-400 font-bold flex items-center gap-1.5 justify-end">
-                    <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
-                    Dual AI: PyTorch + XGBoost (Telum NNPA)
-                </div>
+        <!-- Benchmark Replay & Ingestion Controls -->
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg shadow-sm">
+                <span class="text-xs text-slate-400 font-medium">PhysioNet 2019:</span>
+                <select id="benchmark-select" class="bg-slate-950 text-cyan-300 border border-slate-700 text-xs rounded px-2 py-1 outline-none focus:border-cyan-500">
+                    <option value="p000028">p000028: Acute Sepsis Deterioration (31h) [Septic]</option>
+                    <option value="p000011">p000011: Septic Shock Trajectory (34h) [Septic]</option>
+                    <option value="p000001">p000001: Stable Non-Septic Stay (54h) [Stable]</option>
+                    <option value="p000002">p000002: Post-Op Monitored Recovery (23h) [Stable]</option>
+                </select>
+                <button id="replay-btn" onclick="startBenchmarkReplay()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded transition flex items-center gap-1 shadow-md shadow-indigo-600/30">
+                    <span>Replay Real Patient</span>
+                </button>
             </div>
-            <button id="toggle-stream-btn" onclick="toggleStream()" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm transition shadow-lg shadow-cyan-600/30 flex items-center gap-2">
-                <span>Start Telemetry Stream</span>
+
+            <button id="toggle-stream-btn" onclick="toggleStream()" class="px-3.5 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition shadow-lg shadow-cyan-600/30 flex items-center gap-1.5">
+                <span>Random Load Stream</span>
             </button>
         </div>
     </header>
@@ -134,9 +140,88 @@
     <script>
         let streaming = false;
         let streamInterval = null;
+        let replaying = false;
         let totalTx = 0;
         let interceptCount = 0;
         let latencies = [];
+
+        async function loadBenchmarkManifest() {
+            try {
+                const res = await fetch("/api/v1/patients/benchmark");
+                if (res.ok) {
+                    const data = await res.json();
+                    const sel = document.getElementById("benchmark-select");
+                    if (data.patients && data.patients.length > 0) {
+                        sel.innerHTML = "";
+                        data.patients.forEach(p => {
+                            const opt = document.createElement("option");
+                            opt.value = p.id;
+                            const tag = p.septic ? "[Septic]" : "[Stable]";
+                            opt.textContent = `${p.id}: ${p.description} ${tag}`;
+                            sel.appendChild(opt);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Could not load benchmark manifest:", e);
+            }
+        }
+        window.addEventListener("DOMContentLoaded", loadBenchmarkManifest);
+
+        async function startBenchmarkReplay() {
+            if (replaying) {
+                replaying = false;
+                return;
+            }
+            if (streaming) toggleStream();
+            
+            const sel = document.getElementById("benchmark-select");
+            const patientId = sel.value;
+            const btn = document.getElementById("replay-btn");
+            
+            try {
+                btn.innerHTML = `<span class="animate-spin text-amber-300">⏳</span> Stop Replay`;
+                btn.className = "px-3 py-1 bg-amber-700 hover:bg-amber-600 text-white text-xs font-semibold rounded transition flex items-center gap-1 shadow-md";
+                replaying = true;
+                
+                const res = await fetch(`/api/v1/patients/benchmark/${patientId}`);
+                if (!res.ok) throw new Error("Failed to load patient data");
+                const patientData = await res.json();
+                
+                for (const obs of patientData.observations) {
+                    if (!replaying) break;
+                    
+                    const payload = {
+                        patient_id: `${patientData.patient_id}-H${obs.hour}`,
+                        hr: obs.hr,
+                        map: obs.map,
+                        resp: obs.resp,
+                        temp: obs.temp,
+                        o2sat: obs.o2sat,
+                        lactate: obs.lactate,
+                        wbc: obs.wbc
+                    };
+                    
+                    const t0 = performance.now();
+                    const postRes = await fetch("/api/v1/telemetry", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await postRes.json();
+                    const totalClientLatency = (performance.now() - t0).toFixed(2);
+                    handleTelemetryResult(data, totalClientLatency);
+                    
+                    await new Promise(r => setTimeout(r, 280));
+                }
+            } catch (err) {
+                console.error("Replay error:", err);
+            } finally {
+                replaying = false;
+                btn.className = "px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded transition flex items-center gap-1 shadow-md shadow-indigo-600/30";
+                btn.innerHTML = "<span>Replay Real Patient</span>";
+            }
+        }
 
         function toggleStream() {
             streaming = !streaming;

@@ -89,31 +89,45 @@ class DualAIEngine:
         t_xgb_start = time.perf_counter_ns()
         hr, map_val, resp, temp, o2, lactate, wbc, hr_delta, map_delta = features
         
-        # Combine clinical heuristics with latent tensor energy
+        # Combine clinical Sepsis-3 criteria with latent tensor energy
         latent_norm = float(np.linalg.norm(latent_embedding))
         
-        score = 10.0 # Baseline risk
-        if map_val < 65.0:
-            score += 35.0 # Hypotension
+        score = 8.0 # Baseline adult ICU risk
+        
+        # Mean Arterial Pressure (Hemodynamic Perfusion)
+        if map_val < 55.0:
+            score += 45.0 # Profound circulatory failure / shock
+        elif map_val < 65.0:
+            score += 25.0 # Sepsis-3 defining hypotension
         elif map_val < 75.0:
-            score += 15.0
+            score += 10.0
             
-        if lactate > 4.0:
-            score += 30.0 # Hyperlactatemia
+        # Serum Lactate (Cellular Hypoperfusion & Anaerobic Metabolism)
+        if lactate > 3.5:
+            score += 35.0 # Severe lactic acidosis / metabolic collapse
         elif lactate > 2.0:
-            score += 15.0
+            score += 20.0 # Sepsis-3 threshold criterion
             
-        if resp >= 22.0:
-            score += 10.0 # Tachypnea
+        # Respiratory Rate (qSOFA Tachypnea)
+        if resp >= 28.0:
+            score += 20.0
+        elif resp >= 22.0:
+            score += 12.0
             
-        if hr > 105.0 or hr_delta > 20.0:
-            score += 10.0 # Tachycardia / delta acceleration
+        # Heart Rate & Dynamic Acceleration (SIRS Tachycardia)
+        if hr > 115.0 or hr_delta > 20.0:
+            score += 18.0
+        elif hr > 100.0 or hr_delta > 10.0:
+            score += 10.0
             
+        # Temperature & Leukocytes (SIRS Systemic Inflammation)
         if temp > 38.3 or temp < 36.0:
-            score += 5.0
+            score += 8.0
+        if wbc > 12.0 or wbc < 4.0:
+            score += 8.0
             
-        # Subtle modulation from PyTorch latent space (captures complex interactions)
-        score += min(5.0, latent_norm * 0.5)
+        # PyTorch latent temporal modulation (captures trajectory shape)
+        score += min(6.0, latent_norm * 0.5)
         risk_score = min(100.0, max(0.0, score))
         xgb_ms = (time.perf_counter_ns() - t_xgb_start) / 1_000_000.0
         

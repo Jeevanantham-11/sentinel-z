@@ -1,0 +1,353 @@
+{
+  "patient_id": "p000028",
+  "case_description": "Acute Sepsis Deterioration (Onset Hr 22)",
+  "is_septic_case": true,
+  "demographics": {
+    "age": 56.46,
+    "gender": "Female"
+  },
+  "total_hours": 31,
+  "observations": [
+    {
+      "hour": 1,
+      "hr": 82.0,
+      "map": 82.0,
+      "resp": 16.0,
+      "temp": 37.0,
+      "o2sat": 98.0,
+      "lactate": 1.2,
+      "wbc": 7.5,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 2,
+      "hr": 117.0,
+      "map": 56.0,
+      "resp": 32.0,
+      "temp": 37.0,
+      "o2sat": 92.0,
+      "lactate": 1.8,
+      "wbc": 7.5,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 3,
+      "hr": 107.0,
+      "map": 57.0,
+      "resp": 19.0,
+      "temp": 36.83,
+      "o2sat": 99.0,
+      "lactate": 1.8,
+      "wbc": 7.5,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 4,
+      "hr": 110.0,
+      "map": 35.0,
+      "resp": 20.0,
+      "temp": 36.83,
+      "o2sat": 96.0,
+      "lactate": 1.8,
+      "wbc": 7.5,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 5,
+      "hr": 122.0,
+      "map": 65.5,
+      "resp": 20.0,
+      "temp": 36.83,
+      "o2sat": 94.0,
+      "lactate": 1.8,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 6,
+      "hr": 113.0,
+      "map": 60.0,
+      "resp": 18.0,
+      "temp": 36.83,
+      "o2sat": 100.0,
+      "lactate": 1.8,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 7,
+      "hr": 110.0,
+      "map": 71.0,
+      "resp": 28.0,
+      "temp": 37.0,
+      "o2sat": 100.0,
+      "lactate": 1.8,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 8,
+      "hr": 105.0,
+      "map": 70.0,
+      "resp": 28.0,
+      "temp": 37.0,
+      "o2sat": 100.0,
+      "lactate": 1.8,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 9,
+      "hr": 105.0,
+      "map": 68.0,
+      "resp": 28.0,
+      "temp": 37.0,
+      "o2sat": 100.0,
+      "lactate": 1.8,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 10,
+      "hr": 96.0,
+      "map": 110.0,
+      "resp": 32.0,
+      "temp": 37.0,
+      "o2sat": 99.0,
+      "lactate": 1.7,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 11,
+      "hr": 91.0,
+      "map": 113.0,
+      "resp": 32.0,
+      "temp": 36.28,
+      "o2sat": 96.0,
+      "lactate": 1.7,
+      "wbc": 11.2,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 12,
+      "hr": 89.0,
+      "map": 116.0,
+      "resp": 32.0,
+      "temp": 36.28,
+      "o2sat": 99.0,
+      "lactate": 1.7,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 13,
+      "hr": 93.0,
+      "map": 99.0,
+      "resp": 32.0,
+      "temp": 36.28,
+      "o2sat": 99.0,
+      "lactate": 1.7,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 14,
+      "hr": 87.0,
+      "map": 96.0,
+      "resp": 32.0,
+      "temp": 36.28,
+      "o2sat": 99.0,
+      "lactate": 1.7,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 15,
+      "hr": 84.0,
+      "map": 93.0,
+      "resp": 32.0,
+      "temp": 37.06,
+      "o2sat": 100.0,
+      "lactate": 1.7,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 16,
+      "hr": 84.0,
+      "map": 101.0,
+      "resp": 32.0,
+      "temp": 37.06,
+      "o2sat": 100.0,
+      "lactate": 1.5,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 17,
+      "hr": 84.0,
+      "map": 97.0,
+      "resp": 32.0,
+      "temp": 37.06,
+      "o2sat": 99.0,
+      "lactate": 1.5,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 18,
+      "hr": 79.0,
+      "map": 100.0,
+      "resp": 32.0,
+      "temp": 37.06,
+      "o2sat": 99.0,
+      "lactate": 1.5,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 19,
+      "hr": 80.0,
+      "map": 101.0,
+      "resp": 30.0,
+      "temp": 37.44,
+      "o2sat": 99.0,
+      "lactate": 1.1,
+      "wbc": 10.9,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 20,
+      "hr": 87.0,
+      "map": 108.0,
+      "resp": 28.0,
+      "temp": 37.44,
+      "o2sat": 90.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 21,
+      "hr": 84.0,
+      "map": 94.0,
+      "resp": 27.0,
+      "temp": 37.44,
+      "o2sat": 96.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 0
+    },
+    {
+      "hour": 22,
+      "hr": 88.0,
+      "map": 111.0,
+      "resp": 25.0,
+      "temp": 37.44,
+      "o2sat": 96.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 23,
+      "hr": 82.0,
+      "map": 95.0,
+      "resp": 27.5,
+      "temp": 37.28,
+      "o2sat": 95.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 24,
+      "hr": 83.0,
+      "map": 100.0,
+      "resp": 26.0,
+      "temp": 37.28,
+      "o2sat": 96.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 25,
+      "hr": 81.0,
+      "map": 94.0,
+      "resp": 27.0,
+      "temp": 37.28,
+      "o2sat": 95.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 26,
+      "hr": 81.0,
+      "map": 98.0,
+      "resp": 25.0,
+      "temp": 37.28,
+      "o2sat": 96.0,
+      "lactate": 1.1,
+      "wbc": 4.8,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 27,
+      "hr": 81.0,
+      "map": 99.0,
+      "resp": 27.0,
+      "temp": 37.67,
+      "o2sat": 96.0,
+      "lactate": 1.1,
+      "wbc": 6.4,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 28,
+      "hr": 88.0,
+      "map": 65.0,
+      "resp": 28.0,
+      "temp": 37.67,
+      "o2sat": 96.0,
+      "lactate": 1.2,
+      "wbc": 6.4,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 29,
+      "hr": 98.0,
+      "map": 100.0,
+      "resp": 26.0,
+      "temp": 37.67,
+      "o2sat": 92.0,
+      "lactate": 1.2,
+      "wbc": 6.4,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 30,
+      "hr": 85.0,
+      "map": 73.0,
+      "resp": 22.0,
+      "temp": 37.67,
+      "o2sat": 94.0,
+      "lactate": 1.2,
+      "wbc": 6.4,
+      "sepsis_label": 1
+    },
+    {
+      "hour": 31,
+      "hr": 91.0,
+      "map": 86.0,
+      "resp": 25.0,
+      "temp": 37.56,
+      "o2sat": 95.0,
+      "lactate": 1.2,
+      "wbc": 6.4,
+      "sepsis_label": 1
+    }
+  ]
+}

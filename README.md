@@ -110,6 +110,9 @@ python deploy/benchmark_s390x.py --iter 1000
 # 4. Start Ingestion Gateway & Web Console
 python backend/main.py
 
-# 5. In another terminal, stream synthetic hospital transactions
-python data_simulator/hl7_generator.py
+# 5. In another terminal, replay an authentic PhysioNet ICU patient
+python data_simulator/hl7_generator.py --mode replay --patient p000028
+
+# Or dispatch continuous high-throughput load stream
+python data_simulator/hl7_generator.py --mode stream --rate 4 --count 100
 ```

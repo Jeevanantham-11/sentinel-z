@@ -1,0 +1,64 @@
+{
+  "benchmark_source": "PhysioNet / Computing in Cardiology Challenge 2019",
+  "protocol": "Early Prediction of Sepsis from Clinical Data (Sepsis-3 Criteria)",
+  "license": "Open Data Commons Open Database License (ODbL) / PhysioNet Restricted Open",
+  "patient_count": 8,
+  "patients": [
+    {
+      "id": "p000011",
+      "description": "Septic Shock Trajectory (Onset Hr 25)",
+      "hours": 34,
+      "septic": true,
+      "file": "p000011.json"
+    },
+    {
+      "id": "p000028",
+      "description": "Acute Sepsis Deterioration (Onset Hr 22)",
+      "hours": 31,
+      "septic": true,
+      "file": "p000028.json"
+    },
+    {
+      "id": "p000009",
+      "description": "Prolonged ICU Sepsis (Onset Hr 248)",
+      "hours": 258,
+      "septic": true,
+      "file": "p000009.json"
+    },
+    {
+      "id": "p000018",
+      "description": "Late Sepsis Progression (Onset Hr 125)",
+      "hours": 134,
+      "septic": true,
+      "file": "p000018.json"
+    },
+    {
+      "id": "p000001",
+      "description": "Stable Non-Septic ICU Stay (54 hrs)",
+      "hours": 54,
+      "septic": false,
+      "file": "p000001.json"
+    },
+    {
+      "id": "p000002",
+      "description": "Post-Op Monitored Recovery (23 hrs)",
+      "hours": 23,
+      "septic": false,
+      "file": "p000002.json"
+    },
+    {
+      "id": "p000003",
+      "description": "Stable Trauma Observation (48 hrs)",
+      "hours": 48,
+      "septic": false,
+      "file": "p000003.json"
+    },
+    {
+      "id": "p000007",
+      "description": "Cardiothoracic Stable Control (65 hrs)",
+      "hours": 45,
+      "septic": false,
+      "file": "p000007.json"
+    }
+  ]
+}
