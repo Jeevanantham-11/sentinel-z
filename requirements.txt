@@ -13,6 +13,7 @@ torch>=2.0.0
 xgboost>=1.7.0
 onnx>=1.14.0
 onnxruntime>=1.15.0
+onnxscript>=0.7.0
 
 # Async queue & utilities
 asyncio>=3.4.3
