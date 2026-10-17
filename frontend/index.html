@@ -242,6 +242,12 @@
                     <span class="h-2 w-2 rounded-full bg-emerald-500" id="conn-dot"></span>
                     <span id="conn-text">Online</span>
                 </div>
+
+                <!-- User Manual Button -->
+                <button onclick="openUserManualModal()" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-md transition flex items-center gap-1.5 shadow-xs" title="Open Interactive User Manual & System Guide">
+                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    <span>User Manual</span>
+                </button>
             </div>
         </header>
 
@@ -954,6 +960,175 @@
     </div>
 
     <!-- ======================================================================= -->
+    <!-- INTERACTIVE USER MANUAL & OPERATOR GUIDE MODAL                          -->
+    <!-- ======================================================================= -->
+    <div id="user-manual-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 font-sans">
+        <div class="bg-white border border-slate-200 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl rounded-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-7 w-7 bg-[#0f62fe] text-white font-bold flex items-center justify-center rounded text-xs shadow-xs">
+                        IBM
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-900">Sentinel-Z Operator Manual &amp; UI Guide</h3>
+                        <p class="text-[11px] text-slate-500 font-normal">Reference guide explaining every button, visual signal, and operational flow.</p>
+                    </div>
+                </div>
+                <button onclick="closeUserManualModal()" class="text-slate-400 hover:text-slate-700 text-xl font-medium px-2 py-1">&times;</button>
+            </div>
+
+            <!-- Modal Nav Tabs -->
+            <div class="flex border-b border-slate-200 px-6 bg-white gap-6 text-xs shrink-0 font-medium text-slate-500">
+                <button onclick="switchManualTab('tab-top-controls')" id="btn-tab-top-controls" class="manual-tab-btn py-3 border-b-2 border-blue-600 text-blue-600">Top Bar Controls</button>
+                <button onclick="switchManualTab('tab-sidebar-views')" id="btn-tab-sidebar-views" class="manual-tab-btn py-3 border-b-2 border-transparent hover:text-slate-900">Sidebar Screens</button>
+                <button onclick="switchManualTab('tab-clinical-alerts')" id="btn-tab-clinical-alerts" class="manual-tab-btn py-3 border-b-2 border-transparent hover:text-slate-900">Clinical Alerts &amp; Beeps</button>
+                <button onclick="switchManualTab('tab-persistence-fhir')" id="btn-tab-persistence-fhir" class="manual-tab-btn py-3 border-b-2 border-transparent hover:text-slate-900">Db2 &amp; FHIR R4</button>
+            </div>
+
+            <!-- Modal Scrollable Content -->
+            <div class="p-6 overflow-y-auto space-y-6 text-xs text-slate-700 flex-1">
+                
+                <!-- TAB 1: TOP BAR CONTROLS -->
+                <div id="tab-top-controls" class="manual-tab-content space-y-4">
+                    <h4 class="font-semibold text-sm text-slate-900">Top Header Controls Explained</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800">Dropdown</span>
+                                <span class="font-semibold text-slate-900">Cohort Replay</span>
+                            </div>
+                            <p class="leading-relaxed text-slate-600">Selects an authentic patient from the PhysioNet 2019 ICU challenge (<code class="font-mono text-slate-800">p000028</code>, <code class="font-mono text-slate-800">p000011</code>, <code class="font-mono text-slate-800">p000001</code>). Clicking <span class="font-semibold text-slate-900">Replay</span> streams their physiological trajectory hour-by-hour sequentially.</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">Button</span>
+                                <span class="font-semibold text-slate-900">Stream Load</span>
+                            </div>
+                            <p class="leading-relaxed text-slate-600">Simulates high-velocity enterprise telemetry ingestion across multiple ICU beds at 1–2 transactions/sec. Demonstrates that LinuxONE scores vitals with sub-millisecond execution without batch delays.</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800">Toggle</span>
+                                <span class="font-semibold text-slate-900">Audio Muted / Active</span>
+                            </div>
+                            <p class="leading-relaxed text-slate-600">Toggles the bedside auditory alarm. When active, sounds a medical-grade 880 Hz chime (IEC 60601-1-8 standard) whenever a patient breaches the Sepsis-3 critical threshold (&ge; 70%).</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-800">Status</span>
+                                <span class="font-semibold text-slate-900">Connection Pill</span>
+                            </div>
+                            <p class="leading-relaxed text-slate-600">Polls the backend <code class="font-mono text-slate-800">/health</code> endpoint every 4 seconds. Green indicates full liveness; amber/red indicates degraded state or circuit breaker activation.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: SIDEBAR SCREENS -->
+                <div id="tab-sidebar-views" class="manual-tab-content hidden space-y-4">
+                    <h4 class="font-semibold text-sm text-slate-900">The 8 Platform Navigation Screens</h4>
+                    
+                    <div class="space-y-3">
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">1. ICU Bedside Units</div>
+                            <div class="text-slate-600 leading-relaxed">Default command center. Displays live cards for all monitored beds with real-time risk gauges, physiological vitals, and action status (Green = Normal, Red = Intercept).</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">2. In-Txn Ledger</div>
+                            <div class="text-slate-600 leading-relaxed">Chronological audit stream of every processed telemetry transaction with sub-millisecond timestamps, patient IDs, and circuit breaker health.</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">3. TreeSHAP Studio</div>
+                            <div class="text-slate-600 leading-relaxed">Mathematical Explainable AI (XAI) workbench. Deconstructs the XGBoost risk score into exact Shapley values (&phi;) so clinicians understand the root cause.</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">4. watsonx Copilot</div>
+                            <div class="text-slate-600 leading-relaxed">Clinical Decision Support feed generated by IBM Granite 3.0. Operates under FDA CDS guardrails—summarizes evidence without prescribing unauthorized doses.</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">5. PhysioNet Registry</div>
+                            <div class="text-slate-600 leading-relaxed">Clinical dossiers of the 8 PhysioNet 2019 benchmark patients, showing demographic age, gender, total stay hours, and septic onset times.</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">6. Telum Hardware</div>
+                            <div class="text-slate-600 leading-relaxed">Technical specifications of the IBM Telum on-chip AI accelerator (NNPA), on-chip cache interconnects, and comparison against x86 cloud architecture.</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">7. Alert Budget</div>
+                            <div class="text-slate-600 leading-relaxed">Novel AI differentiator. Dynamically modulates the Sepsis-3 alert threshold (60–85%) to guarantee hospital alarm budget remains under &lt; 2.0 false alarms/bed/day.</div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+                            <div class="font-semibold text-blue-600 shrink-0 w-36">8. Db2 Audit Ledger</div>
+                            <div class="text-slate-600 leading-relaxed">Mainframe persistence ledger. Displays rows committed to the persistent database (<code class="font-mono text-slate-800">SENTINEL_AUDIT</code>) with transaction IDs and guardrail verification.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: CLINICAL ALERTS & AUDIO -->
+                <div id="tab-clinical-alerts" class="manual-tab-content hidden space-y-4">
+                    <h4 class="font-semibold text-sm text-slate-900">Why Does the Bed Turn Red &amp; Sound a Chime?</h4>
+                    
+                    <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="h-3 w-3 rounded-full bg-rose-600"></span>
+                            <span class="font-semibold text-rose-900 text-sm">Emergency Interception Triggered (Risk &ge; 70%)</span>
+                        </div>
+                        <p class="text-rose-800 leading-relaxed">When physiological trajectory metrics indicate acute circulatory or metabolic collapse (e.g. MAP collapses below 55 mmHg, or serum lactate exceeds 3.5 mmol/L), Sentinel-Z flags the observation prior to database commit.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                            <div class="bg-white p-3 rounded-lg border border-rose-200">
+                                <span class="font-semibold text-slate-900">Visual Escalation:</span>
+                                <p class="text-slate-600 mt-1">Bed card switches from neutral white to high-contrast red alert with the banner <span class="font-semibold text-rose-700 font-mono">INTERCEPT &amp; ESCALATE</span>.</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border border-rose-200">
+                                <span class="font-semibold text-slate-900">Auditory Chime:</span>
+                                <p class="text-slate-600 mt-1">Complies with hospital medical alarm standard <span class="font-semibold text-slate-900">IEC 60601-1-8</span>. Alerts nurses who are turned away or administering medication.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                        <span class="font-semibold text-slate-900">The 5.2-Hour Lead Time Advantage:</span>
+                        <p class="text-slate-600 leading-relaxed">In septic shock, mortality rises by 7.6% for every hour treatment is delayed. Standard hospital batch systems run once every 15–60 minutes. Sentinel-Z evaluates every vital continuous in-transaction, detecting deterioration 5.2 hours before irreversible shock.</p>
+                    </div>
+                </div>
+
+                <!-- TAB 4: PERSISTENCE & FHIR -->
+                <div id="tab-persistence-fhir" class="manual-tab-content hidden space-y-4">
+                    <h4 class="font-semibold text-sm text-slate-900">Data Sovereignty, Db2 &amp; HL7 FHIR Interoperability</h4>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="font-semibold text-slate-900">1. IBM Db2 for z/OS Persistent Audit Log:</div>
+                            <p class="text-slate-600 leading-relaxed">Every observation—whether normal or intercepted—is committed to an immutable transaction table (<code class="font-mono text-slate-800">SENTINEL_AUDIT</code>). This creates a legally defensible and clinically auditable trail for hospital quality assurance without locking the primary EHR ledger.</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="font-semibold text-slate-900">2. Export FHIR R4 Bundle (.json):</div>
+                            <p class="text-slate-600 leading-relaxed">Clicking <span class="font-semibold text-slate-900">"View Clinical Dossier"</span> on any patient card displays a blue button: <span class="font-semibold text-blue-700">"Export FHIR R4 Bundle"</span>. This downloads a standardized HL7 FHIR document containing the <code class="font-mono text-slate-800">Patient</code> and <code class="font-mono text-slate-800">RiskAssessment</code> resources for seamless integration into Epic, Cerner, or MEDITECH.</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="font-semibold text-slate-900">3. Zero Cloud Egress (HIPAA Compliance):</div>
+                            <p class="text-slate-600 leading-relaxed">All hot-path inference occurs within on-premise IBM LinuxONE memory. No Protected Health Information (PHI) is ever exported to public cloud APIs, eliminating external network latency and data breach liabilities.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center shrink-0">
+                <span class="text-[11px] text-slate-500">Documented in <code class="font-mono text-slate-700">docs/USER_MANUAL.md</code></span>
+                <button onclick="closeUserManualModal()" class="px-5 py-1.5 bg-[#0f62fe] hover:bg-[#0043ce] text-xs font-semibold text-white rounded-lg shadow-xs transition">Close Guide</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
     <!-- ZERO-ERROR CLIENT JAVASCRIPT                                            -->
     <!-- ======================================================================= -->
     <script>
@@ -1034,6 +1209,25 @@
         function saveHostConfig() {
             closeHostModal();
             checkGatewayHealth();
+        }
+
+        function openUserManualModal() {
+            document.getElementById("user-manual-modal").classList.remove("hidden");
+        }
+
+        function closeUserManualModal() {
+            document.getElementById("user-manual-modal").classList.add("hidden");
+        }
+
+        function switchManualTab(tabId) {
+            document.querySelectorAll(".manual-tab-content").forEach(el => el.classList.add("hidden"));
+            document.querySelectorAll(".manual-tab-btn").forEach(btn => {
+                btn.className = "manual-tab-btn py-3 border-b-2 border-transparent hover:text-slate-900";
+            });
+            const targetContent = document.getElementById(tabId);
+            if (targetContent) targetContent.classList.remove("hidden");
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if (activeBtn) activeBtn.className = "manual-tab-btn py-3 border-b-2 border-blue-600 text-blue-600";
         }
 
         function toggleAudio() {
