@@ -79,7 +79,7 @@ def generate_physionet_cohort(num_patients: int = 2000, observations_per_patient
 
 def train_pipeline():
     print("=" * 68)
-    print("  PROJECT SENTINEL-Z — DUAL AI MODEL TRAINING")
+    print("  PROJECT SENTINEL-Z -- DUAL AI MODEL TRAINING")
     print("  Frameworks: PyTorch (Latent Net) + XGBoost (Classifier)")
     print("=" * 68)
     
@@ -146,9 +146,9 @@ def train_pipeline():
     print("\n" + "=" * 68)
     print("  MODEL GENERALIZATION & ACCURACY BENCHMARK")
     print("=" * 68)
-    print(f"  • ROC-AUC Score        : {roc_auc:.4f}  (Discrimination capability)")
-    print(f"  • AUPRC Score          : {auprc:.4f}  (High specificity on imbalanced data)")
-    print(f"  • Baseline False-Alarms: Reduced by >34.2% vs. static qSOFA rules")
+    print(f"  [-] ROC-AUC Score        : {roc_auc:.4f}  (Discrimination capability)")
+    print(f"  [-] AUPRC Score          : {auprc:.4f}  (High specificity on imbalanced data)")
+    print(f"  [-] Baseline False-Alarms: Reduced by >34.2% vs. static qSOFA rules")
     print("=" * 68)
     
     # Save model artifacts

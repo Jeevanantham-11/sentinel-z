@@ -10,7 +10,7 @@ import time
 
 def verify_system():
     print("=" * 60)
-    print("  PROJECT SENTINEL-Z — PLATFORM VERIFICATION REPORT")
+    print("  PROJECT SENTINEL-Z -- PLATFORM VERIFICATION REPORT")
     print("=" * 60)
     
     arch = platform.machine()

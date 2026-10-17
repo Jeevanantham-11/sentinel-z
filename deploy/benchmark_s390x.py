@@ -22,7 +22,7 @@ def run_benchmark(iterations: int = 2000):
     system = platform.system()
     
     print("=" * 68)
-    print("  PROJECT SENTINEL-Z — IN-TRANSACTION DUAL-AI BENCHMARK")
+    print("  PROJECT SENTINEL-Z -- IN-TRANSACTION DUAL-AI BENCHMARK")
     print("  Target Hardware: IBM Telum AI Accelerator / LinuxONE (s390x)")
     print("=" * 68)
     print(f"[*] Host OS          : {system} ({platform.release()})")
@@ -33,10 +33,10 @@ def run_benchmark(iterations: int = 2000):
     
     engine = DualAIEngine()
     
-    # Warm-up (100 iterations)
-    dummy_feat = [82.0, 80.0, 16.0, 37.1, 98.0, 1.2, 7.5, 0.0, 0.0]
+    # Cache and instruction pipeline warm-up (100 iterations)
+    warmup_vector = [82.0, 80.0, 16.0, 37.1, 98.0, 1.2, 7.5, 0.0, 0.0]
     for _ in range(100):
-        engine.evaluate(dummy_feat)
+        engine.evaluate(warmup_vector)
         
     latencies_total = []
     latencies_torch = []
@@ -85,8 +85,8 @@ def run_benchmark(iterations: int = 2000):
     print("\n" + "=" * 68)
     print("  IN-TRANSACTION PERFORMANCE METRICS (SLA TARGET: < 4.000 ms)")
     print("=" * 68)
-    print(f"  • Throughput Rate      : {tps:,.1f} In-Transaction Inferences / Second")
-    print(f"  • Total Time Elapsed   : {t_bench_total:.3f} seconds for {iterations:,} records")
+    print(f"  [-] Throughput Rate    : {tps:,.1f} In-Transaction Inferences / Second")
+    print(f"  [-] Total Time Elapsed : {t_bench_total:.3f} seconds for {iterations:,} records")
     print("-" * 68)
     print("  LATENCY DISTRIBUTION (HOT PATH):")
     print(f"    - Median (p50)       : {p50:6.3f} ms   [Telum Target: < 1.0 ms]")

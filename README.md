@@ -22,7 +22,7 @@ Hospital sepsis mortality increases by **7.6% for every hour antimicrobial inter
                │
                ▼  (HL7 v2 / FHIR R4 Streaming)
 ┌─────────────────────────────────────────────────────────────┐
-│  Ingestion Gateway (z/OS Connect / FastAPI Mock)            │
+│  Ingestion Gateway (z/OS Connect / FastAPI Gateway Simulator)│
 │  - Port 8000 (Ingestion & WebSocket Hub)                    │
 └──────────────┬──────────────────────────────────────────────┘
                │  In-Memory Rolling State Buffer (O(1))
