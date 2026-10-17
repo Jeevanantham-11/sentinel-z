@@ -15,18 +15,16 @@ import requests
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 BENCHMARK_DIR = BASE_DIR / "data" / "benchmark_patients"
-TARGET_URL = "http://localhost:8000/api/v1/telemetry"
+DEFAULT_URL = os.getenv("GATEWAY_URL", "http://localhost:8000/api/v1/telemetry")
 
 def load_benchmark_patient(patient_id: str = "p000011") -> dict:
     """Loads a real PhysioNet benchmark patient file."""
-    # Ensure patient_id ends with .json
     if not patient_id.endswith(".json"):
         patient_file = BENCHMARK_DIR / f"{patient_id}.json"
     else:
         patient_file = BENCHMARK_DIR / patient_id
 
     if not patient_file.exists():
-        # Fallback to first available file
         files = list(BENCHMARK_DIR.glob("p*.json"))
         if not files:
             raise FileNotFoundError(
@@ -38,7 +36,7 @@ def load_benchmark_patient(patient_id: str = "p000011") -> dict:
     with open(patient_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def replay_real_patient(patient_id: str = "p000011", delay_sec: float = 0.4):
+def replay_real_patient(patient_id: str = "p000011", delay_sec: float = 0.4, url: str = DEFAULT_URL):
     """
     Replays an authentic ICU patient hour-by-hour through the Sentinel-Z gateway.
     Demonstrates real-time in-transaction clinical interception prior to EHR commit.
@@ -72,7 +70,7 @@ def replay_real_patient(patient_id: str = "p000011", delay_sec: float = 0.4):
         }
 
         try:
-            res = session.post(TARGET_URL, json=payload, timeout=2.0)
+            res = session.post(url, json=payload, timeout=2.0)
             if res.status_code == 200:
                 data = res.json()
                 score = data.get("risk_score", 0.0)
@@ -134,9 +132,9 @@ def generate_random_patient_payload():
             "wbc": round(random.uniform(5.5, 9.5), 1)
         }
 
-def run_synthetic_stream(rate_per_sec: float = 4.0, max_events: int = 100):
+def run_synthetic_stream(rate_per_sec: float = 4.0, max_events: int = 100, url: str = DEFAULT_URL):
     """Dispatches continuous high-throughput synthetic telemetry."""
-    print(f"[*] Dispatching HL7/FHIR telemetry stream to {TARGET_URL} at {rate_per_sec} TPS...")
+    print(f"[*] Dispatching HL7/FHIR telemetry stream to {url} at {rate_per_sec} TPS...")
     delay = 1.0 / rate_per_sec if rate_per_sec > 0 else 0
     session = requests.Session()
     sent = 0
@@ -144,7 +142,7 @@ def run_synthetic_stream(rate_per_sec: float = 4.0, max_events: int = 100):
     while sent < max_events:
         payload = generate_random_patient_payload()
         try:
-            res = session.post(TARGET_URL, json=payload, timeout=2.0)
+            res = session.post(url, json=payload, timeout=2.0)
             if res.status_code == 200:
                 data = res.json()
                 action = data.get("action", "UNKNOWN")
@@ -168,9 +166,10 @@ if __name__ == "__main__":
     parser.add_argument("--rate", type=float, default=4.0, help="Transactions per second for stream mode")
     parser.add_argument("--count", type=int, default=100, help="Total transactions for stream mode")
     parser.add_argument("--delay", type=float, default=0.25, help="Delay between hours in replay mode (seconds)")
+    parser.add_argument("--url", type=str, default=DEFAULT_URL, help="Gateway telemetry endpoint URL")
     args = parser.parse_args()
     
     if args.mode == "replay":
-        replay_real_patient(patient_id=args.patient, delay_sec=args.delay)
+        replay_real_patient(patient_id=args.patient, delay_sec=args.delay, url=args.url)
     else:
-        run_synthetic_stream(rate_per_sec=args.rate, max_events=args.count)
+        run_synthetic_stream(rate_per_sec=args.rate, max_events=args.count, url=args.url)

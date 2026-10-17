@@ -8,7 +8,7 @@
 set -e
 
 echo "=============================================================="
-echo "  PROJECT SENTINEL-Z — LINUXONE DEPLOYMENT ENGINE"
+echo "  PROJECT SENTINEL-Z -- LINUXONE DEPLOYMENT ENGINE"
 echo "=============================================================="
 
 # 1. Architecture Check
@@ -32,13 +32,17 @@ fi
 
 # 3. Virtual Environment Setup
 echo "[*] Initializing dedicated virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv || python3 -m venv .venv
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+elif [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
 
 # 4. Install dependencies
 echo "[*] Installing Python dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt || pip install fastapi uvicorn onnx onnxruntime xgboost numpy scikit-learn requests python-dotenv
 
 # 5. Run Verification
 echo "[*] Verifying runtime environment..."
@@ -46,6 +50,6 @@ python deploy/verify_env.py
 
 echo "=============================================================="
 echo "  DEPLOYMENT READY! To launch Sentinel-Z:"
-echo "    source venv/bin/activate"
+echo "    source venv/bin/activate || source .venv/bin/activate"
 echo "    python backend/main.py"
 echo "=============================================================="

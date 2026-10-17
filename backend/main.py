@@ -131,11 +131,35 @@ async def ingest_telemetry(data: PatientTelemetry):
             "metrics": metrics
         }
     except Exception as exc:
-        logger.error("Error processing telemetry for %s: %s", data.patient_id, str(exc))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"In-transaction processing error: {str(exc)}"
-        )
+        t_end = time.perf_counter_ns()
+        inference_ms = (t_end - t_start) / 1_000_000.0
+        logger.error("Fail-Open Circuit Breaker activated for %s: %s", data.patient_id, str(exc))
+        
+        # Zero-Downtime Resilience: Fallback to deterministic clinical rules
+        vitals_dict = data.dict()
+        fallback_features = [
+            vitals_dict.get("hr", 80.0), vitals_dict.get("map", 85.0),
+            vitals_dict.get("resp", 16.0), vitals_dict.get("temp", 37.0),
+            vitals_dict.get("o2sat", 98.0), vitals_dict.get("lactate", 1.2),
+            vitals_dict.get("wbc", 7.5), 0.0, 0.0
+        ]
+        fallback_score = calculate_heuristic_sepsis_score(fallback_features)
+        
+        return {
+            "status": "circuit_breaker_active",
+            "patient_id": data.patient_id,
+            "risk_score": round(fallback_score, 1),
+            "action": "COMMITTED TO EHR [CIRCUIT BREAKER FALLBACK]",
+            "inference_latency_ms": round(inference_ms, 3),
+            "diagnostics": {
+                "circuit_breaker": True,
+                "fallback_mode": "deterministic_heuristic_fail_open",
+                "error": str(exc)
+            },
+            "vitals": vitals_dict,
+            "rationale": None,
+            "metrics": latency_tracker.get_metrics()
+        }
 
 @app.get("/api/v1/metrics", status_code=status.HTTP_200_OK)
 async def get_system_metrics():
@@ -165,5 +189,7 @@ async def get_benchmark_patient(patient_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Initializing Sentinel-Z Gateway on port 8000")
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=False)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    logger.info("Initializing Sentinel-Z Gateway on %s:%d", host, port)
+    uvicorn.run("backend.main:app", host=host, port=port, reload=False)
