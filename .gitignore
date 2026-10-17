@@ -35,9 +35,6 @@ Thumbs.db
 *.pem
 watsonx_api_key.txt
 
-# Internal Presentation / Pitch Scratch Material
-docs/
-
 # Local temporary data & logs
 *.log
 scratch/
