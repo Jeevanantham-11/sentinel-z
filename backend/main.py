@@ -28,6 +28,7 @@ sys.path.insert(0, str(BASE_DIR))
 from backend.state_store import InMemoryStateStore
 from backend.latency_tracker import LatencyTracker
 from ml_pipeline.feature_schema import calculate_heuristic_sepsis_score
+from ml_pipeline.dual_engine import DualAIEngine
 from warm_path.watsonx_agent import WatsonxClinicalAgent
 
 app = FastAPI(
@@ -47,6 +48,7 @@ app.add_middleware(
 state_store = InMemoryStateStore()
 latency_tracker = LatencyTracker()
 watsonx_agent = WatsonxClinicalAgent()
+dual_ai_engine = DualAIEngine()
 
 class PatientTelemetry(BaseModel):
     patient_id: str = Field(..., description="Unique anonymized clinical identifier")
@@ -66,6 +68,8 @@ async def health_check():
         "status": "healthy",
         "service": "Sentinel-Z In-Transaction Gateway",
         "platform": platform.machine(),
+        "ai_frameworks": ["PyTorch", "XGBoost"],
+        "llm_engine": "IBM Granite 3.0",
         "total_processed": latency_tracker.total_transactions
     }
 
@@ -92,8 +96,8 @@ async def ingest_telemetry(data: PatientTelemetry):
         buffer.add_observation(data.dict())
         features = buffer.get_feature_vector()
         
-        # 2. In-Transaction Model Inference
-        risk_score = calculate_heuristic_sepsis_score(features)
+        # 2. In-Transaction Dual-Framework Model Inference (PyTorch + XGBoost on Telum)
+        risk_score, diagnostics = dual_ai_engine.evaluate(features)
         
         t_end = time.perf_counter_ns()
         inference_ms = (t_end - t_start) / 1_000_000.0
@@ -103,7 +107,7 @@ async def ingest_telemetry(data: PatientTelemetry):
         is_critical = risk_score >= 80.0
         action = "INTERCEPT & ESCALATE" if is_critical else "COMMITTED TO EHR"
         
-        # 4. Asynchronous Warm-Path GenAI Synthesis for Critical Deterioration
+        # 4. Asynchronous Warm-Path GenAI Synthesis via IBM Granite
         rationale = None
         if is_critical:
             rationale = await watsonx_agent.generate_triage_rationale(
@@ -121,6 +125,7 @@ async def ingest_telemetry(data: PatientTelemetry):
             "risk_score": round(risk_score, 1),
             "action": action,
             "inference_latency_ms": round(inference_ms, 3),
+            "diagnostics": diagnostics,
             "vitals": data.dict(),
             "rationale": rationale,
             "metrics": metrics

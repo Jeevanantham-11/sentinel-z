@@ -29,7 +29,7 @@ def verify_system():
     print("-" * 60)
     print("Testing Core Dependencies:")
     
-    deps = ["fastapi", "uvicorn", "numpy", "sklearn", "onnxruntime"]
+    deps = ["fastapi", "uvicorn", "numpy", "torch", "xgboost", "sklearn", "onnxruntime"]
     all_passed = True
     for dep in deps:
         try:
