@@ -39,3 +39,4 @@ watsonx_api_key.txt
 *.log
 scratch/
 data/raw/
+data/*.db

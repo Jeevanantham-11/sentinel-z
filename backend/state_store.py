@@ -18,15 +18,19 @@ class PatientRollingBuffer:
 
     def add_observation(self, telemetry: dict):
         with self._lock:
+            def _val(k, default):
+                v = telemetry.get(k)
+                return float(v) if v is not None else float(default)
+
             self.history.append({
                 "timestamp": time.time(),
-                "hr": float(telemetry.get("hr", 80.0)),
-                "map": float(telemetry.get("map", 85.0)),
-                "resp": float(telemetry.get("resp", 16.0)),
-                "temp": float(telemetry.get("temp", 37.0)),
-                "o2sat": float(telemetry.get("o2sat", 98.0)),
-                "lactate": float(telemetry.get("lactate", 1.2)),
-                "wbc": float(telemetry.get("wbc", 7.5)),
+                "hr": _val("hr", 80.0),
+                "map": _val("map", 85.0),
+                "resp": _val("resp", 16.0),
+                "temp": _val("temp", 37.0),
+                "o2sat": _val("o2sat", 98.0),
+                "lactate": _val("lactate", 1.2),
+                "wbc": _val("wbc", 7.5),
             })
             self.last_updated = time.time()
 

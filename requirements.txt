@@ -1,3 +1,14 @@
+# =========================================================
+# Sentinel-Z Requirements — LinuxONE (s390x) Compatible
+# =========================================================
+# NOTE on PyTorch for s390x:
+#   Official PyPI torch wheels do NOT ship for s390x.
+#   On LinuxONE, install via IBM-provided Open CE channel:
+#     conda install -c https://opence.mit.edu pytorch
+#   OR build from source. See deploy/setup_s390x.sh.
+#   On x86/local dev: pip install torch>=2.0.0 works fine.
+# =========================================================
+
 # Core Ingestion API & WebSockets
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
@@ -8,12 +19,17 @@ python-dotenv>=1.0.0
 
 # Numerical & ML Hot Path (Dual Framework: PyTorch + XGBoost)
 numpy>=1.23.0
+scipy>=1.10.0
 scikit-learn>=1.2.0
-torch>=2.0.0
+# torch: installed separately on s390x — see note above
 xgboost>=1.7.0
+
+# ONNX — onnxruntime ships for s390x via IBM Open CE / conda-forge
 onnx>=1.14.0
 onnxruntime>=1.15.0
-onnxscript>=0.7.0
+# onnxscript: NOT available on s390x — excluded
 
-# Async queue & utilities
-asyncio>=3.4.3
+# Data pipeline
+pandas>=1.5.0
+
+# Audit & Persistence (stdlib sqlite3 used — no extra dep needed)

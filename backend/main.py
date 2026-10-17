@@ -12,6 +12,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 # Structured logging configuration
@@ -27,8 +28,13 @@ sys.path.insert(0, str(BASE_DIR))
 
 from backend.state_store import InMemoryStateStore
 from backend.latency_tracker import LatencyTracker
+from backend.circuit_breaker import CircuitBreaker
+from backend.db2_audit_log import Db2AuditLog
+from backend.clinical_imputer import ClinicalImputationRegistry
+from deploy.hardware_matrix import introspect_hardware
 from ml_pipeline.feature_schema import calculate_heuristic_sepsis_score
 from ml_pipeline.dual_engine import DualAIEngine
+from ml_pipeline.alert_controller import AlertBudgetController
 from warm_path.watsonx_agent import WatsonxClinicalAgent
 
 app = FastAPI(
@@ -46,32 +52,45 @@ app.add_middleware(
 )
 
 state_store = InMemoryStateStore()
+clinical_imputer = ClinicalImputationRegistry()
 latency_tracker = LatencyTracker()
 watsonx_agent = WatsonxClinicalAgent()
 dual_ai_engine = DualAIEngine()
+circuit_breaker = CircuitBreaker(latency_threshold_ms=4.0)
+alert_controller = AlertBudgetController(target_max_alarms_per_bed_day=2.0)
+db2_audit = Db2AuditLog()
+
 
 class PatientTelemetry(BaseModel):
     patient_id: str = Field(..., description="Unique anonymized clinical identifier")
-    hr: float = Field(80.0, ge=20.0, le=300.0, description="Heart Rate (bpm)")
-    map: float = Field(85.0, ge=10.0, le=250.0, description="Mean Arterial Pressure (mmHg)")
-    resp: float = Field(16.0, ge=4.0, le=80.0, description="Respiratory Rate (breaths/min)")
-    temp: float = Field(37.0, ge=30.0, le=45.0, description="Body Temperature (Celsius)")
-    o2sat: float = Field(98.0, ge=50.0, le=100.0, description="Oxygen Saturation (%)")
-    lactate: float = Field(1.2, ge=0.1, le=30.0, description="Serum Lactate (mmol/L)")
-    wbc: float = Field(7.5, ge=0.1, le=100.0, description="White Blood Cell count (10^9/L)")
+    hr: Optional[float] = Field(None, ge=20.0, le=300.0, description="Heart Rate (bpm)")
+    map: Optional[float] = Field(None, ge=10.0, le=250.0, description="Mean Arterial Pressure (mmHg)")
+    resp: Optional[float] = Field(None, ge=4.0, le=80.0, description="Respiratory Rate (breaths/min)")
+    temp: Optional[float] = Field(None, ge=30.0, le=45.0, description="Body Temperature (Celsius)")
+    o2sat: Optional[float] = Field(None, ge=50.0, le=100.0, description="Oxygen Saturation (%)")
+    lactate: Optional[float] = Field(None, ge=0.1, le=30.0, description="Serum Lactate (mmol/L)")
+    wbc: Optional[float] = Field(None, ge=0.1, le=100.0, description="White Blood Cell count (10^9/L)")
 
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check():
     """System liveness and readiness probe for enterprise monitoring."""
-    import platform
+    hw = introspect_hardware()
     return {
         "status": "healthy",
         "service": "Sentinel-Z In-Transaction Gateway",
-        "platform": platform.machine(),
+        "platform": hw["architecture"],
+        "hardware_tier": hw["hardware_tier"],
+        "acceleration_mode": hw["acceleration_mode"],
+        "endian": hw["byte_order"],
         "ai_frameworks": ["PyTorch", "XGBoost"],
         "llm_engine": "IBM Granite 3.0",
         "total_processed": latency_tracker.total_transactions
     }
+
+@app.get("/api/v1/hardware", status_code=status.HTTP_200_OK)
+async def get_hardware_info():
+    """Hardware introspection and Telum/s390x execution acceleration provider discovery."""
+    return introspect_hardware()
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
@@ -91,10 +110,10 @@ async def ingest_telemetry(data: PatientTelemetry):
     t_start = time.perf_counter_ns()
     
     try:
-        # 1. In-Memory State Update O(1)
+        # 1. In-Memory State Update with Physiological Decay Imputation (LOCF)
         buffer = state_store.get_or_create(data.patient_id)
         buffer.add_observation(data.dict())
-        features = buffer.get_feature_vector()
+        features = clinical_imputer.process_telemetry(data.patient_id, data.dict())
         
         # 2. In-Transaction Dual-Framework Model Inference (PyTorch + XGBoost on Telum)
         risk_score, diagnostics = dual_ai_engine.evaluate(features)
@@ -102,9 +121,11 @@ async def ingest_telemetry(data: PatientTelemetry):
         t_end = time.perf_counter_ns()
         inference_ms = (t_end - t_start) / 1_000_000.0
         latency_tracker.record(inference_ms)
+        circuit_breaker.record_execution(inference_ms, success=True)
         
-        # 3. Deterministic Sepsis-3 Early Warning Triage Decision
-        is_critical = risk_score >= 70.0
+        # 3. Clinical Alert-Budget Regulated Sepsis-3 Early Warning Triage Decision
+        alert_decision = alert_controller.evaluate_alert(risk_score, patient_stability_index=1.0)
+        is_critical = alert_decision["should_alert"]
         action = "INTERCEPT & ESCALATE" if is_critical else "COMMITTED TO EHR"
         
         # 4. Asynchronous Warm-Path GenAI Synthesis via IBM Granite
@@ -115,49 +136,82 @@ async def ingest_telemetry(data: PatientTelemetry):
                 risk_score=risk_score,
                 vitals=data.dict()
             )
-            logger.warning("Critical interception triggered for %s (Score: %.1f%%)", data.patient_id, risk_score)
+            logger.warning("Critical interception triggered for %s (Score: %.1f%%, Threshold: %.1f%%)",
+                           data.patient_id, risk_score, alert_decision["active_threshold"])
             
         metrics = latency_tracker.get_metrics()
+        
+        # 5. Db2 Audit Log COMMIT — every scored transaction is persisted to the ledger
+        guardrail_status = (rationale or {}).get("guardrail_status", "N/A")
+        txn_id = db2_audit.commit_transaction(
+            patient_id=data.patient_id,
+            risk_score=risk_score,
+            action=action,
+            inference_ms=inference_ms,
+            guardrail=guardrail_status,
+            alert_status=alert_decision.get("alert_fatigue_status", "CONTROLLED"),
+            cb_state=circuit_breaker.get_status().get("state", "CLOSED")
+        )
         
         return {
             "status": "success",
             "patient_id": data.patient_id,
+            "txn_id": txn_id,
             "risk_score": round(risk_score, 1),
             "action": action,
             "inference_latency_ms": round(inference_ms, 3),
             "diagnostics": diagnostics,
             "vitals": data.dict(),
             "rationale": rationale,
+            "alert_budget": alert_decision,
+            "circuit_breaker": circuit_breaker.get_status(),
             "metrics": metrics
         }
     except Exception as exc:
         t_end = time.perf_counter_ns()
         inference_ms = (t_end - t_start) / 1_000_000.0
-        logger.error("Fail-Open Circuit Breaker activated for %s: %s", data.patient_id, str(exc))
+        circuit_breaker.record_execution(inference_ms, success=False)
+        logger.error("Fail-Visible Circuit Breaker activated for %s: %s", data.patient_id, str(exc))
         
         # Zero-Downtime Resilience: Fallback to deterministic clinical rules
         vitals_dict = data.dict()
+        def _get_val(k, default):
+            v = vitals_dict.get(k)
+            return float(v) if v is not None else float(default)
+
         fallback_features = [
-            vitals_dict.get("hr", 80.0), vitals_dict.get("map", 85.0),
-            vitals_dict.get("resp", 16.0), vitals_dict.get("temp", 37.0),
-            vitals_dict.get("o2sat", 98.0), vitals_dict.get("lactate", 1.2),
-            vitals_dict.get("wbc", 7.5), 0.0, 0.0
+            _get_val("hr", 80.0), _get_val("map", 85.0),
+            _get_val("resp", 16.0), _get_val("temp", 37.0),
+            _get_val("o2sat", 98.0), _get_val("lactate", 1.2),
+            _get_val("wbc", 7.5), 0.0, 0.0
         ]
         fallback_score = calculate_heuristic_sepsis_score(fallback_features)
         
+        # Db2 audit: even failed-path transactions are committed to the ledger
+        db2_audit.commit_transaction(
+            patient_id=data.patient_id,
+            risk_score=fallback_score,
+            action="COMMITTED TO EHR [FAIL-VISIBLE CDS FALLBACK]",
+            inference_ms=inference_ms,
+            guardrail="BYPASS_FALLBACK",
+            alert_status="DEGRADED",
+            cb_state=circuit_breaker.get_status().get("state", "OPEN")
+        )
+        
         return {
-            "status": "circuit_breaker_active",
+            "status": "fail_visible_degraded",
             "patient_id": data.patient_id,
             "risk_score": round(fallback_score, 1),
-            "action": "COMMITTED TO EHR [CIRCUIT BREAKER FALLBACK]",
+            "action": "COMMITTED TO EHR [FAIL-VISIBLE CDS FALLBACK]",
             "inference_latency_ms": round(inference_ms, 3),
             "diagnostics": {
-                "circuit_breaker": True,
-                "fallback_mode": "deterministic_heuristic_fail_open",
+                "monitoring_state": "FAIL-VISIBLE DEGRADED (Backup Heuristic Rule Active)",
+                "circuit_breaker": circuit_breaker.get_status(),
                 "error": str(exc)
             },
             "vitals": vitals_dict,
             "rationale": None,
+            "circuit_breaker": circuit_breaker.get_status(),
             "metrics": latency_tracker.get_metrics()
         }
 
@@ -165,6 +219,33 @@ async def ingest_telemetry(data: PatientTelemetry):
 async def get_system_metrics():
     """Returns real-time p50, p95, p99 latency distributions."""
     return latency_tracker.get_metrics()
+
+@app.get("/api/v1/alert-budget", status_code=status.HTTP_200_OK)
+async def get_alert_budget():
+    """
+    Returns the live Alert-Budget Controller state.
+    Shows the adaptive threshold and projected false-alarm rate per bed per day.
+    Implements the novel alarm-fatigue mitigation differentiator of Sentinel-Z.
+    """
+    return {
+        "description": "Dynamic alert threshold controller — maintains <2.0 false alarms/bed/day",
+        "citation": "Wong et al., JAMA IM 2021 (Epic Sepsis Model: 33% sensitivity, 12% PPV)",
+        **alert_controller.get_metrics()
+    }
+
+@app.get("/api/v1/audit/log", status_code=status.HTTP_200_OK)
+async def get_audit_log(limit: int = 50):
+    """
+    Returns the last N committed EHR transactions from the Db2 Audit Log.
+    Simulates IBM Db2 for z/OS row-level audit table (production: ibm_db connector).
+    Integration note: On LinuxONE, replace SQLite with Db2 via ibm_db / ibm_db_sa.
+    """
+    return {
+        "audit_source": "Sentinel-Z Db2 Audit Log (SQLite simulation — ibm_db on production)",
+        "integration_note": "Production: CICS/z/OS Connect → scoring → Db2 z/OS COMMIT via ibm_db connector",
+        "summary": db2_audit.get_summary(),
+        "recent_transactions": db2_audit.get_recent(limit=limit)
+    }
 
 @app.get("/api/v1/patients/benchmark", status_code=status.HTTP_200_OK)
 async def list_benchmark_patients():
@@ -193,3 +274,4 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     logger.info("Initializing Sentinel-Z Gateway on %s:%d", host, port)
     uvicorn.run("backend.main:app", host=host, port=port, reload=False)
+
