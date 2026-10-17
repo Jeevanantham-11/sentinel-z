@@ -31,10 +31,13 @@ from backend.latency_tracker import LatencyTracker
 from backend.circuit_breaker import CircuitBreaker
 from backend.db2_audit_log import Db2AuditLog
 from backend.clinical_imputer import ClinicalImputationRegistry
+from backend.ingestion_engine import parse_hl7_v2_message, parse_fhir_r4_bundle, MultiBedCohortStreamer
 from deploy.hardware_matrix import introspect_hardware
+from deploy.profile_hardware import profile_silicon_environment, benchmark_inference_sla
 from ml_pipeline.feature_schema import calculate_heuristic_sepsis_score
 from ml_pipeline.dual_engine import DualAIEngine
 from ml_pipeline.alert_controller import AlertBudgetController
+from tests.benchmark_vs_epic import run_comparative_benchmark
 from warm_path.watsonx_agent import WatsonxClinicalAgent
 
 app = FastAPI(
@@ -267,6 +270,68 @@ async def get_benchmark_patient(patient_id: str):
         raise HTTPException(status_code=404, detail=f"Benchmark patient {patient_id} not found")
     with open(patient_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+class HL7IngestPayload(BaseModel):
+    raw_message: str = Field(..., description="Raw HL7 v2.x pipe-delimited message (ORU^R01)")
+
+@app.post("/api/v1/ingest/hl7", status_code=status.HTTP_200_OK)
+async def ingest_hl7_v2(payload: HL7IngestPayload):
+    """
+    Hospital Bedside Ingestion: Ingests raw HL7 v2 ORU^R01 observation message.
+    Parses MSH, PID, and OBX LOINC observations and executes in-transaction scoring.
+    """
+    try:
+        parsed = parse_hl7_v2_message(payload.raw_message)
+        telemetry = PatientTelemetry(
+            patient_id=parsed["patient_id"],
+            **parsed["vitals"]
+        )
+        return await ingest_telemetry(telemetry)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"HL7 parse error: {str(exc)}")
+
+@app.post("/api/v1/ingest/fhir", status_code=status.HTTP_200_OK)
+async def ingest_fhir(payload: Dict[str, Any]):
+    """
+    EHR Interoperability: Ingests HL7 FHIR R4 Observation or Bundle resource.
+    Extracts Subject Patient reference and LOINC codes for real-time scoring.
+    """
+    try:
+        parsed = parse_fhir_r4_bundle(payload)
+        telemetry = PatientTelemetry(
+            patient_id=parsed["patient_id"],
+            **parsed["vitals"]
+        )
+        return await ingest_telemetry(telemetry)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"FHIR parse error: {str(exc)}")
+
+@app.get("/api/v1/benchmark/competitive", status_code=status.HTTP_200_OK)
+async def get_competitive_benchmark():
+    """
+    Quantitative head-to-head clinical benchmark:
+    Sentinel-Z vs. Epic Sepsis Model (Wong et al. JAMA IM 2021) vs. Traditional qSOFA.
+    """
+    res = run_comparative_benchmark()
+    return {
+        "status": "success",
+        "benchmark_dataset": "PhysioNet / Computing in Cardiology Challenge 2019",
+        "citation": "Wong et al., JAMA Internal Medicine 2021; 38,455 hospitalizations",
+        "results": res
+    }
+
+@app.get("/api/v1/hardware/profile", status_code=status.HTTP_200_OK)
+async def get_hardware_profile():
+    """
+    Silicon Profiler: Probes CPU architecture, endianness,
+    instruction facilities, and benchmarks sustained in-transaction inferences.
+    """
+    silicon = profile_silicon_environment()
+    perf = benchmark_inference_sla(iterations=1000)
+    return {
+        "silicon_environment": silicon,
+        "performance_benchmark": perf
+    }
 
 if __name__ == "__main__":
     import uvicorn

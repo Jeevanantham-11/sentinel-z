@@ -225,6 +225,70 @@ class TestSentinelZPipeline(unittest.TestCase):
         self.assertGreater(vector[5], 0.0) # Lactate imputed from ICU population mean
         self.assertFalse(any(np.isnan(v) for v in vector))
 
+    def test_14_hl7_v2_oru_r01_parsing(self):
+        """Verify HL7 v2.x ORU^R01 message parsing with MSH, PID, and OBX LOINC observations."""
+        from backend.ingestion_engine import parse_hl7_v2_message
+        raw_hl7 = (
+            "MSH|^~\\&|INTELLIVUE|ICU_BAY4|SENTINEL_Z|IBM_Z16|20261017220000||ORU^R01|MSG0001|P|2.5\r\n"
+            "PID|1||ICU-HL7-888^^^HOSPITAL||DOE^JOHN||19700101|M\r\n"
+            "OBX|1|NM|8867-4^Heart rate^LN||128|bpm||||F\r\n"
+            "OBX|2|NM|8478-0^Mean blood pressure^LN||54|mmHg||||F\r\n"
+            "OBX|3|NM|2571-8^Serum lactate^LN||3.8|mmol/L||||F\r\n"
+        )
+        parsed = parse_hl7_v2_message(raw_hl7)
+        self.assertEqual(parsed["patient_id"], "ICU-HL7-888")
+        self.assertEqual(parsed["vitals"]["hr"], 128.0)
+        self.assertEqual(parsed["vitals"]["map"], 54.0)
+        self.assertEqual(parsed["vitals"]["lactate"], 3.8)
+
+    def test_15_fhir_r4_bundle_parsing(self):
+        """Verify HL7 FHIR R4 Bundle parsing with LOINC coded vitals."""
+        from backend.ingestion_engine import parse_fhir_r4_bundle
+        fhir_bundle = {
+            "resourceType": "Bundle",
+            "entry": [
+                {
+                    "resource": {
+                        "resourceType": "Observation",
+                        "subject": {"reference": "Patient/ICU-FHIR-777"},
+                        "code": {"coding": [{"code": "8867-4"}]},
+                        "valueQuantity": {"value": 115.0}
+                    }
+                },
+                {
+                    "resource": {
+                        "resourceType": "Observation",
+                        "subject": {"reference": "Patient/ICU-FHIR-777"},
+                        "code": {"coding": [{"code": "8478-0"}]},
+                        "valueQuantity": {"value": 58.0}
+                    }
+                }
+            ]
+        }
+        parsed = parse_fhir_r4_bundle(fhir_bundle)
+        self.assertEqual(parsed["patient_id"], "ICU-FHIR-777")
+        self.assertEqual(parsed["vitals"]["hr"], 115.0)
+        self.assertEqual(parsed["vitals"]["map"], 58.0)
+
+    def test_16_competitive_benchmark_execution(self):
+        """Verify automated competitive benchmark against Epic ESM and qSOFA."""
+        from tests.benchmark_vs_epic import run_comparative_benchmark
+        results = run_comparative_benchmark()
+        self.assertIn("sentinel_z", results)
+        self.assertIn("epic_esm", results)
+        self.assertIn("qsofa_rules", results)
+        self.assertGreater(len(results["sentinel_z"]["latencies_ms"]), 0)
+
+    def test_17_hardware_silicon_profiler(self):
+        """Verify IBM Telum / LinuxONE silicon profiler execution and SLA measurement."""
+        from deploy.profile_hardware import profile_silicon_environment, benchmark_inference_sla
+        silicon = profile_silicon_environment()
+        self.assertIn("architecture", silicon)
+        self.assertIn("endianness", silicon)
+        perf = benchmark_inference_sla(iterations=100)
+        self.assertIn("latency_p50_ms", perf)
+        self.assertIn("sla_pre_commit_under_0_5ms", perf)
+
 if __name__ == "__main__":
     unittest.main()
 

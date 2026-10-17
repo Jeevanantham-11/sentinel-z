@@ -33,13 +33,17 @@ class ClinicalTreeSHAP:
         Decomposes total Sepsis-3 risk into individual Shapley attribution values (phi_i).
         Returns absolute contributions, percentages, and clinical interpretation.
         """
-        map_val = vitals.get("map", 85.0)
-        lactate = vitals.get("lactate", 1.1)
-        resp = vitals.get("resp", 16.0)
-        hr = vitals.get("hr", 78.0)
-        temp = vitals.get("temp", 37.0)
-        wbc = vitals.get("wbc", 7.5)
-        o2sat = vitals.get("o2sat", 98.0)
+        def _safe_val(k: str, default: float) -> float:
+            v = vitals.get(k)
+            return float(v) if v is not None else float(default)
+
+        map_val = _safe_val("map", 85.0)
+        lactate = _safe_val("lactate", 1.1)
+        resp = _safe_val("resp", 16.0)
+        hr = _safe_val("hr", 78.0)
+        temp = _safe_val("temp", 37.0)
+        wbc = _safe_val("wbc", 7.5)
+        o2sat = _safe_val("o2sat", 98.0)
         
         attributions = []
         
