@@ -1,0 +1,17 @@
+# Core Ingestion API & WebSockets
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+websockets>=11.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Numerical & ML Hot Path
+numpy>=1.23.0
+scikit-learn>=1.2.0
+xgboost>=1.7.0
+onnx>=1.14.0
+onnxruntime>=1.15.0
+
+# Async queue & utilities
+asyncio>=3.4.3

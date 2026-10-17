@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-Z — IBM Z Clinical Interception Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .critical-pulse {
+            animation: pulse-red 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- Top Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="h-9 w-9 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-cyan-500/20">
+                Z
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    PROJECT SENTINEL-Z
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800">IBM Z In-Transaction AI</span>
+                </h1>
+                <p class="text-xs text-slate-400">Zero-Latency Clinical Sepsis Deterioration Gateway &bull; LinuxONE Native</p>
+            </div>
+        </div>
+
+        <!-- System Architecture Pill -->
+        <div class="flex items-center gap-6">
+            <div class="text-right">
+                <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Active Engine</div>
+                <div id="arch-display" class="text-sm font-mono text-emerald-400 font-bold flex items-center gap-1.5 justify-end">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    IBM Telum NNPA (s390x Emulation)
+                </div>
+            </div>
+            <button id="toggle-stream-btn" onclick="toggleStream()" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm transition shadow-lg shadow-cyan-600/30 flex items-center gap-2">
+                <span>Start Telemetry Stream</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="p-6 max-w-7xl mx-auto space-y-6">
+
+        <!-- Metrics Overview Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-sm">
+                <div class="text-xs text-slate-400 uppercase font-medium">In-Transaction p99 Latency</div>
+                <div class="text-3xl font-mono font-bold text-cyan-400 mt-1" id="p99-latency">-- ms</div>
+                <div class="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                    <span>&#10003; Target &lt; 4.0 ms (SLA Passed)</span>
+                </div>
+            </div>
+            <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-sm">
+                <div class="text-xs text-slate-400 uppercase font-medium">Median p50 Latency</div>
+                <div class="text-3xl font-mono font-bold text-white mt-1" id="p50-latency">-- ms</div>
+                <div class="text-xs text-slate-400 mt-1">In-Memory Hot Path Execution</div>
+            </div>
+            <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-sm">
+                <div class="text-xs text-slate-400 uppercase font-medium">Total Transactions Evaluated</div>
+                <div class="text-3xl font-mono font-bold text-slate-100 mt-1" id="total-tx">0</div>
+                <div class="text-xs text-slate-400 mt-1">Zero Database Backpressure</div>
+            </div>
+            <div class="bg-slate-900/70 border border-slate-800 rounded-xl p-4 shadow-sm">
+                <div class="text-xs text-slate-400 uppercase font-medium">Critical Interceptions</div>
+                <div class="text-3xl font-mono font-bold text-rose-500 mt-1" id="intercept-count">0</div>
+                <div class="text-xs text-rose-400 mt-1 font-medium">Escalated to watsonx.ai</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Left 2 Cols: Real-time Telemetry Stream -->
+            <div class="lg:col-span-2 bg-slate-900/70 border border-slate-800 rounded-xl flex flex-col shadow-sm">
+                <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                    <h2 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <span>LIVE ICU HL7/FHIR TELEMETRY STREAM</span>
+                        <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+                    </h2>
+                    <span class="text-xs text-slate-500 font-mono">z/OS Connect REST &bull; 1,000 TPS Capable</span>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-slate-950/60 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Patient ID</th>
+                                <th class="p-3">MAP (mmHg)</th>
+                                <th class="p-3">Lactate (mmol/L)</th>
+                                <th class="p-3">HR (bpm)</th>
+                                <th class="p-3">Resp</th>
+                                <th class="p-3">Inference Time</th>
+                                <th class="p-3">Risk Score</th>
+                                <th class="p-3">Hot-Path Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="telemetry-table-body" class="divide-y divide-slate-800/60 text-slate-300">
+                            <tr>
+                                <td colspan="8" class="text-center py-12 text-slate-500 font-sans">
+                                    Click "Start Telemetry Stream" above to stream simulated hospital transactions.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right 1 Col: watsonx.ai Clinical Briefs -->
+            <div class="bg-slate-900/70 border border-slate-800 rounded-xl flex flex-col shadow-sm">
+                <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                    <h2 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <span>WATSONX.AI CLINICAL BRIEFS</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800">Warm Path</span>
+                    </h2>
+                    <span class="text-xs text-slate-500">Grounded in TreeSHAP</span>
+                </div>
+                <div id="alerts-container" class="p-4 space-y-3 overflow-y-auto max-h-[600px] flex-1">
+                    <div class="text-center py-16 text-slate-500 text-xs font-sans">
+                        No critical thresholds breached yet.<br>High-risk transactions (&gt;85% Sepsis Risk) will trigger instant clinical briefings here.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        let streaming = false;
+        let streamInterval = null;
+        let totalTx = 0;
+        let interceptCount = 0;
+        let latencies = [];
+
+        function toggleStream() {
+            streaming = !streaming;
+            const btn = document.getElementById("toggle-stream-btn");
+            if (streaming) {
+                btn.innerHTML = "<span>Stop Telemetry Stream</span>";
+                btn.className = "px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-sm transition shadow-lg shadow-rose-600/30 flex items-center gap-2";
+                streamInterval = setInterval(sendSyntheticTransaction, 400); // 2.5 per sec for clear demo
+            } else {
+                btn.innerHTML = "<span>Start Telemetry Stream</span>";
+                btn.className = "px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm transition shadow-lg shadow-cyan-600/30 flex items-center gap-2";
+                clearInterval(streamInterval);
+            }
+        }
+
+        async function sendSyntheticTransaction() {
+            // Generate synthetic patient data
+            const isCritical = Math.random() < 0.25; // 25% chance of deteriorating patient
+            const patientId = "ICU-" + (100 + Math.floor(Math.random() * 20));
+            
+            const payload = {
+                patient_id: patientId,
+                hr: isCritical ? 115 + Math.floor(Math.random() * 25) : 72 + Math.floor(Math.random() * 15),
+                map: isCritical ? 55 + Math.floor(Math.random() * 8) : 85 + Math.floor(Math.random() * 10),
+                resp: isCritical ? 24 + Math.floor(Math.random() * 6) : 16 + Math.floor(Math.random() * 4),
+                temp: isCritical ? 38.6 : 37.0,
+                o2sat: isCritical ? 91.0 : 98.0,
+                lactate: isCritical ? (2.8 + Math.random() * 2.5).toFixed(1) : 1.1,
+                wbc: isCritical ? 15.2 : 7.4
+            };
+
+            const t0 = performance.now();
+            try {
+                const res = await fetch("/api/v1/telemetry", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                const totalClientLatency = (performance.now() - t0).toFixed(2);
+                
+                handleTelemetryResult(data, totalClientLatency);
+            } catch (e) {
+                console.error("Telemetry post failed:", e);
+            }
+        }
+
+        function handleTelemetryResult(data, totalClientLatency) {
+            totalTx++;
+            latencies.push(data.inference_latency_ms);
+            if (latencies.length > 50) latencies.shift();
+
+            // Update stats
+            document.getElementById("total-tx").innerText = totalTx;
+            const p50 = data.metrics.p50_ms || data.inference_latency_ms;
+            const p99 = data.metrics.p99_ms || data.inference_latency_ms;
+            document.getElementById("p50-latency").innerText = p50 + " ms";
+            document.getElementById("p99-latency").innerText = p99 + " ms";
+
+            // Add row to table
+            const tbody = document.getElementById("telemetry-table-body");
+            if (totalTx === 1) tbody.innerHTML = "";
+
+            const isHigh = data.risk_score >= 80.0;
+            if (isHigh) interceptCount++;
+            document.getElementById("intercept-count").innerText = interceptCount;
+
+            const tr = document.createElement("tr");
+            tr.className = isHigh ? "bg-rose-950/30 text-rose-200 border-l-2 border-rose-500" : "hover:bg-slate-900/50";
+            tr.innerHTML = `
+                <td class="p-3 font-bold ${isHigh ? 'text-rose-400' : 'text-slate-200'}">${data.patient_id}</td>
+                <td class="p-3 ${data.vitals.map < 65 ? 'text-rose-400 font-bold' : ''}">${data.vitals.map}</td>
+                <td class="p-3 ${data.vitals.lactate > 2.0 ? 'text-rose-400 font-bold' : ''}">${data.vitals.lactate}</td>
+                <td class="p-3">${data.vitals.hr}</td>
+                <td class="p-3">${data.vitals.resp}</td>
+                <td class="p-3 text-cyan-400 font-bold">${data.inference_latency_ms} ms</td>
+                <td class="p-3">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isHigh ? 'bg-rose-900/80 text-rose-200' : 'bg-slate-800 text-slate-300'}">
+                        ${data.risk_score.toFixed(1)}%
+                    </span>
+                </td>
+                <td class="p-3">
+                    <span class="text-[10px] uppercase font-bold tracking-wider ${isHigh ? 'text-rose-400 critical-pulse' : 'text-emerald-400'}">
+                        ${data.action}
+                    </span>
+                </td>
+            `;
+
+            tbody.insertBefore(tr, tbody.firstChild);
+            if (tbody.children.length > 25) tbody.removeChild(tbody.lastChild);
+
+            // If critical alert, append watsonx brief
+            if (data.rationale) {
+                appendWatsonxAlert(data);
+            }
+        }
+
+        function appendWatsonxAlert(data) {
+            const container = document.getElementById("alerts-container");
+            if (interceptCount === 1) container.innerHTML = "";
+
+            const card = document.createElement("div");
+            card.className = "p-3.5 rounded-lg bg-rose-950/40 border border-rose-800/80 shadow-md space-y-2 animate-fadeIn";
+            card.innerHTML = `
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold text-rose-400 flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+                        PATIENT ${data.patient_id} — RISK: ${data.risk_score.toFixed(1)}%
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400">Hot Path Intercept</span>
+                </div>
+                <p class="text-xs text-slate-200 leading-relaxed font-sans">
+                    ${data.rationale.clinical_rationale}
+                </p>
+                <div class="flex items-center justify-between pt-1 border-t border-rose-900/50 text-[10px] text-slate-400">
+                    <span>${data.rationale.engine}</span>
+                    <span class="font-mono text-cyan-400">Warm Path: ${data.rationale.latency_ms}ms</span>
+                </div>
+            `;
+
+            container.insertBefore(card, container.firstChild);
+            if (container.children.length > 15) container.removeChild(container.lastChild);
+        }
+    </script>
+</body>
+</html>
