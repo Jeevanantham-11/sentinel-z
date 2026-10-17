@@ -7,13 +7,21 @@ Serves the unified frontend and executes sub-millisecond hot-path inference.
 import time
 import os
 import sys
+import logging
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-# Add parent directory to path for clean imports
+# Structured logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+logger = logging.getLogger("sentinel-z.gateway")
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
@@ -36,87 +44,100 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global State and Services
 state_store = InMemoryStateStore()
 latency_tracker = LatencyTracker()
 watsonx_agent = WatsonxClinicalAgent()
 
 class PatientTelemetry(BaseModel):
-    patient_id: str
-    hr: float = 80.0
-    map: float = 85.0
-    resp: float = 16.0
-    temp: float = 37.0
-    o2sat: float = 98.0
-    lactate: float = 1.2
-    wbc: float = 7.5
+    patient_id: str = Field(..., description="Unique anonymized clinical identifier")
+    hr: float = Field(80.0, ge=20.0, le=300.0, description="Heart Rate (bpm)")
+    map: float = Field(85.0, ge=10.0, le=250.0, description="Mean Arterial Pressure (mmHg)")
+    resp: float = Field(16.0, ge=4.0, le=80.0, description="Respiratory Rate (breaths/min)")
+    temp: float = Field(37.0, ge=30.0, le=45.0, description="Body Temperature (Celsius)")
+    o2sat: float = Field(98.0, ge=50.0, le=100.0, description="Oxygen Saturation (%)")
+    lactate: float = Field(1.2, ge=0.1, le=30.0, description="Serum Lactate (mmol/L)")
+    wbc: float = Field(7.5, ge=0.1, le=100.0, description="White Blood Cell count (10^9/L)")
+
+@app.get("/health", status_code=status.HTTP_200_OK)
+async def health_check():
+    """System liveness and readiness probe for enterprise monitoring."""
+    import platform
+    return {
+        "status": "healthy",
+        "service": "Sentinel-Z In-Transaction Gateway",
+        "platform": platform.machine(),
+        "total_processed": latency_tracker.total_transactions
+    }
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
-    """Serves the unified Command Center UI without needing external ports."""
+    """Serves the integrated command center console."""
     ui_path = BASE_DIR / "frontend" / "index.html"
     if ui_path.exists():
         with open(ui_path, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
     return HTMLResponse("<h3>Sentinel-Z Gateway Active. UI file not found.</h3>")
 
-@app.post("/api/v1/telemetry")
+@app.post("/api/v1/telemetry", status_code=status.HTTP_200_OK)
 async def ingest_telemetry(data: PatientTelemetry):
     """
-    THE HOT PATH (< 4ms SLA)
-    Executes In-Transaction scoring before committing observation.
+    In-Transaction Hot Path (< 4ms SLA).
+    Scores clinical observation prior to EHR ledger commit.
     """
     t_start = time.perf_counter_ns()
     
-    # 1. In-Memory State Update O(1)
-    buffer = state_store.get_or_create(data.patient_id)
-    buffer.add_observation(data.dict())
-    features = buffer.get_feature_vector()
-    
-    # 2. In-Transaction Model Inference (Telum NNPA / WMLz Emulation)
-    # Sub-millisecond matrix evaluation
-    risk_score = calculate_heuristic_sepsis_score(features)
-    
-    t_end = time.perf_counter_ns()
-    inference_ms = (t_end - t_start) / 1_000_000.0
-    latency_tracker.record(inference_ms)
-    
-    # 3. Action Decision: Safe Commit vs. Intercept
-    is_critical = risk_score >= 80.0
-    action = "INTERCEPT & ESCALATE" if is_critical else "COMMITTED TO EHR"
-    
-    # 4. Asynchronous Warm-Path trigger for Critical events
-    rationale = None
-    if is_critical:
-        # Out-of-band asynchronous call (does not block database throughput)
-        rationale = await watsonx_agent.generate_triage_rationale(
-            patient_id=data.patient_id,
-            risk_score=risk_score,
-            vitals=data.dict()
-        )
+    try:
+        # 1. In-Memory State Update O(1)
+        buffer = state_store.get_or_create(data.patient_id)
+        buffer.add_observation(data.dict())
+        features = buffer.get_feature_vector()
         
-    metrics = latency_tracker.get_metrics()
-    
-    return {
-        "status": "success",
-        "patient_id": data.patient_id,
-        "risk_score": round(risk_score, 1),
-        "action": action,
-        "inference_latency_ms": round(inference_ms, 3),
-        "vitals": data.dict(),
-        "rationale": rationale,
-        "metrics": metrics
-    }
+        # 2. In-Transaction Model Inference
+        risk_score = calculate_heuristic_sepsis_score(features)
+        
+        t_end = time.perf_counter_ns()
+        inference_ms = (t_end - t_start) / 1_000_000.0
+        latency_tracker.record(inference_ms)
+        
+        # 3. Deterministic Triage Decision
+        is_critical = risk_score >= 80.0
+        action = "INTERCEPT & ESCALATE" if is_critical else "COMMITTED TO EHR"
+        
+        # 4. Asynchronous Warm-Path GenAI Synthesis for Critical Deterioration
+        rationale = None
+        if is_critical:
+            rationale = await watsonx_agent.generate_triage_rationale(
+                patient_id=data.patient_id,
+                risk_score=risk_score,
+                vitals=data.dict()
+            )
+            logger.warning("Critical interception triggered for %s (Score: %.1f%%)", data.patient_id, risk_score)
+            
+        metrics = latency_tracker.get_metrics()
+        
+        return {
+            "status": "success",
+            "patient_id": data.patient_id,
+            "risk_score": round(risk_score, 1),
+            "action": action,
+            "inference_latency_ms": round(inference_ms, 3),
+            "vitals": data.dict(),
+            "rationale": rationale,
+            "metrics": metrics
+        }
+    except Exception as exc:
+        logger.error("Error processing telemetry for %s: %s", data.patient_id, str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"In-transaction processing error: {str(exc)}"
+        )
 
-@app.get("/api/v1/metrics")
+@app.get("/api/v1/metrics", status_code=status.HTTP_200_OK)
 async def get_system_metrics():
     """Returns real-time p50, p95, p99 latency distributions."""
     return latency_tracker.get_metrics()
 
 if __name__ == "__main__":
     import uvicorn
-    print("=" * 60)
-    print("  LAUNCHING PROJECT SENTINEL-Z IN-TRANSACTION GATEWAY")
-    print("  Unified Port: 8000 | Web UI: http://localhost:8000")
-    print("=" * 60)
+    logger.info("Initializing Sentinel-Z Gateway on port 8000")
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=False)

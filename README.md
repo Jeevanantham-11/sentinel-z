@@ -63,7 +63,7 @@ To prevent merge conflicts and ensure parallel velocity, the workload is partiti
 | **Member 1** | **ML & Modeling Lead** | • PhysioNet 2019 dataset preprocessing<br>• XGBoost / LightGBM training<br>• Model export to `.onnx`<br>• TreeSHAP feature extraction logic | `ml_pipeline/train_model.py`<br>`ml_pipeline/models/sepsis_model.onnx`<br>`ml_pipeline/feature_schema.py` |
 | **Member 2** | **Backend & Hot Path Lead** | • z/OS Connect API simulator (FastAPI)<br>• In-memory 6-hour rolling state buffer<br>• Sub-4ms ONNX executor with `perf_counter_ns`<br>• High-velocity HL7/FHIR streaming generator | `backend/main.py`<br>`backend/state_store.py`<br>`data_simulator/hl7_generator.py` |
 | **Member 3** | **Frontend & Dashboard Lead** | • Real-time clinical triage dashboard<br>• Live throughput (TPS) & sub-4ms latency meters<br>• ICU vitals telemetry graphs (HR, MAP, Lactate)<br>• Emergency alert banner with GenAI rationales | `frontend/index.html`<br>`frontend/app.js` (or React/Vite)<br>`frontend/styles.css` |
-| **Member 4** | **Warm Path & LinuxONE Deploy Lead** | • Asynchronous queue worker<br>• watsonx.ai prompt template & grounding<br>• LinuxONE deployment scripts (`setup_s390x.sh`)<br>• 3-minute presentation script & video editing | `warm_path/watsonx_agent.py`<br>`deploy/setup_s390x.sh`<br>`docs/pitch_script.md` |
+| **Member 4** | **Warm Path & LinuxONE Deploy Lead** | • Asynchronous queue worker<br>• watsonx.ai prompt template & grounding<br>• LinuxONE deployment scripts (`setup_s390x.sh`)<br>• System parity verification & benchmarking | `warm_path/watsonx_agent.py`<br>`deploy/setup_s390x.sh`<br>`deploy/verify_env.py` |
 
 ---
 
@@ -78,7 +78,7 @@ To prevent merge conflicts and ensure parallel velocity, the workload is partiti
 3. **LinuxONE Cloud Deployment:**
    * SSH into your LinuxONE Community Cloud instance:
      ```bash
-     git clone <YOUR_GITHUB_REPO_URL>
+     git clone https://github.com/Jeevanantham-11/sentinel-z.git
      cd sentinel-z
      bash deploy/setup_s390x.sh
      ```
