@@ -264,9 +264,14 @@ async def list_benchmark_patients():
 async def get_benchmark_patient(patient_id: str):
     """Retrieves hour-by-hour clinical telemetry for an authentic PhysioNet patient."""
     import json
+    import re
+    # Security: strip extension and validate identifier against path traversal attacks
     clean_id = patient_id.replace(".json", "")
-    patient_path = BASE_DIR / "data" / "benchmark_patients" / f"{clean_id}.json"
-    if not patient_path.exists():
+    if not re.match(r"^[a-zA-Z0-9_\-]+$", clean_id):
+        raise HTTPException(status_code=400, detail="Invalid patient identifier format")
+    patient_path = (BASE_DIR / "data" / "benchmark_patients" / f"{clean_id}.json").resolve()
+    benchmark_dir = (BASE_DIR / "data" / "benchmark_patients").resolve()
+    if not str(patient_path).startswith(str(benchmark_dir)) or not patient_path.exists():
         raise HTTPException(status_code=404, detail=f"Benchmark patient {patient_id} not found")
     with open(patient_path, "r", encoding="utf-8") as f:
         return json.load(f)
